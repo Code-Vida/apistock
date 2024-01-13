@@ -1,0 +1,11 @@
+type Query {
+  version: String
+}
+
+type Mutation {
+  hello: String
+
+  #user
+  # login(input: LoginInput!): UserResponse
+  # createUser(input: UserInput!): UserResponse
+}
