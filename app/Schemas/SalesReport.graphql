@@ -1,0 +1,10 @@
+type SalesReportResponse {
+  nodes: [SalesReport]
+}
+
+type SalesReport {
+  _id: ID
+  salesDate: Date
+  product: Product
+  salesAmount: Int
+}

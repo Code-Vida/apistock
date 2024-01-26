@@ -2,6 +2,7 @@ const express = require("express");
 const { ApolloServer } = require("apollo-server-express");
 const { join } = require("path");
 const { loadFilesSync } = require("@graphql-tools/load-files");
+require("dotenv").config();
 
 async function startApolloServer() {
   const app = express();

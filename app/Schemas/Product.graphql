@@ -1,0 +1,28 @@
+type Product {
+  id: ID
+  brand: String
+  model: String
+  color: String
+  number: Int
+  value: Float
+  purchaseValue: Float
+  purchaseDate: Date
+  amount: Int
+}
+
+input ProductInput {
+  id: ID
+  barCode: String
+  brand: String
+  model: String
+  color: String
+  number: Int
+  value: Float
+  purchaseValue: Float
+  purchaseDate: Date
+  amount: Int
+}
+
+type ProductResponse {
+  nodes: Product
+}
