@@ -53,6 +53,7 @@ module.exports = {
                 purchaseDate: purchaseDate,
                 purchaseValue: purchaseValue,
                 value: value,
+                updatedAt: new Date(),
               },
             },
             { returnDocument: "after" }
@@ -70,6 +71,7 @@ module.exports = {
         purchaseDate: purchaseDate,
         purchaseValue: purchaseValue,
         value: value,
+        createdAt: new Date(),
       });
 
       return insert.insertedId ? { _id: insert?.insertedId } : null;
