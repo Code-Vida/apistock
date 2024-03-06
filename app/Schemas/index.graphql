@@ -5,7 +5,7 @@ type Query {
   getAll: [UserResponse]
 
   #products
-  getProduct(input: ProductInput): ProductResponse
+  getProduct(input: ProductInput, pagination: PaginationInput): ProductResponse
 
   #audiences(pagination: PaginationInput): AudiencesResponse @auth(requires: [USER])
 

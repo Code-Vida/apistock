@@ -1,0 +1,11 @@
+type Pagination {
+  total: String!
+  lastPage: Int!
+  perPage: Int!
+  page: Int!
+}
+
+input PaginationInput {
+  page: Int
+  perPage: Int
+}

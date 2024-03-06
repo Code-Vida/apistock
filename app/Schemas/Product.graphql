@@ -1,5 +1,6 @@
 type Product {
   id: ID
+  barCode: String
   brand: String
   model: String
   color: String
@@ -8,6 +9,7 @@ type Product {
   purchaseValue: Float
   purchaseDate: Date
   amount: Int
+  sales: Int
 }
 
 input ProductInput {
@@ -23,6 +25,13 @@ input ProductInput {
   amount: Int
 }
 
+type Total {
+  totalSalesSum: Float
+  totalSum: Float
+}
+
 type ProductResponse {
-  nodes: Product
+  nodes: [Product]
+  pagination: Pagination
+  total: Total
 }
