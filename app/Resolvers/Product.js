@@ -1,22 +1,99 @@
 "use strict";
 const { MongoDB } = require("../database");
 const uuid = require("uuid");
+const { getPaginationInfo, getPaginationResult } = require("../Helpers");
 
 module.exports = {
   Query: {
-    async getProduct(_, args) {
-      const { barCode } = args.input;
+    async getProduct(_, { pagination, input }) {
+      const { page, perPage } = getPaginationInfo(pagination);
       const product = await MongoDB()
         .collection("products")
-        .findOne({ barCode: barCode });
+        .find(input)
+        .skip(perPage * (page - 1))
+        .limit(perPage)
+        .sort({ updatedAt: 1 })
+        .toArray();
 
-      return { nodes: product };
+      const total = await MongoDB().collection("products").count(input);
+
+      const totalSalesSum = await MongoDB()
+        .collection("products")
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              totalValue: { $sum: { $multiply: ["$value", "$sales"] } },
+            },
+          },
+        ])
+        .toArray();
+
+      const totalSum = await MongoDB()
+        .collection("products")
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              totalSum: { $sum: "$purchaseValue" },
+            },
+          },
+        ])
+        .toArray();
+
+      const result = {
+        pages: {
+          total,
+          lastPage: Math.ceil(total / perPage),
+          page,
+          perPage,
+        },
+        data: product,
+        total: {
+          totalSum: totalSum[0].totalSum,
+          totalSalesSum: totalSalesSum[0].totalValue,
+        },
+      };
+
+      return getPaginationResult(result);
     },
   },
 
   Product: {
     async id({ _id }) {
       return _id;
+    },
+  },
+
+  Total: {
+    async totalSalesSum() {
+      const totalSalesSum = await MongoDB()
+        .collection("products")
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              totalValue: { $sum: { $multiply: ["$value", "$sales"] } },
+            },
+          },
+        ])
+        .toArray();
+      return totalSalesSum[0].totalValue;
+    },
+
+    async totalSum() {
+      const totalSum = await MongoDB()
+        .collection("products")
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              totalSum: { $sum: "$purchaseValue" },
+            },
+          },
+        ])
+        .toArray();
+      return totalSum[0].totalSum;
     },
   },
 
@@ -84,7 +161,7 @@ module.exports = {
           {
             _id: args.input,
           },
-          { $inc: { amount: -1 } },
+          { $inc: { sales: 1 } },
           { returnDocument: "after" }
         );
 
