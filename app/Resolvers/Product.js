@@ -1,7 +1,11 @@
 "use strict";
 const { MongoDB } = require("../database");
 const uuid = require("uuid");
-const { getPaginationInfo, getPaginationResult } = require("../Helpers");
+const {
+  getPaginationInfo,
+  getPaginationResult,
+  trimObjectValues,
+} = require("../Helpers");
 
 module.exports = {
   Query: {
@@ -9,7 +13,7 @@ module.exports = {
       const { page, perPage } = getPaginationInfo(pagination);
       const product = await MongoDB()
         .collection("products")
-        .find(input)
+        .find(trimObjectValues(input))
         .skip(perPage * (page - 1))
         .limit(perPage)
         .sort({ updatedAt: 1 })
@@ -48,7 +52,7 @@ module.exports = {
           page,
           perPage,
         },
-        data: product,
+        data: trimObjectValues(product),
         total: {
           totalSum: totalSum[0].totalSum,
           totalSalesSum: totalSalesSum[0].totalValue,
@@ -112,33 +116,7 @@ module.exports = {
         id,
       } = args.input;
 
-      if (id) {
-        const update = await MongoDB()
-          .collection("products")
-          .updateOne(
-            {
-              _id: id,
-            },
-            {
-              $set: {
-                barCode: barCode,
-                amount: amount,
-                brand: brand,
-                model: model,
-                color: color,
-                number: number,
-                purchaseDate: purchaseDate,
-                purchaseValue: purchaseValue,
-                value: value,
-                updatedAt: new Date(),
-              },
-            },
-            { returnDocument: "after" }
-          );
-        return update.modifiedCount > 0 ? { _id: id } : null;
-      }
-      const insert = await MongoDB().collection("products").insertOne({
-        _id: uuid.v4(),
+      const input = {
         barCode: barCode,
         amount: amount,
         brand: brand,
@@ -148,8 +126,30 @@ module.exports = {
         purchaseDate: purchaseDate,
         purchaseValue: purchaseValue,
         value: value,
-        createdAt: new Date(),
-      });
+        updatedAt: new Date(),
+      };
+
+      if (id) {
+        const update = await MongoDB()
+          .collection("products")
+          .updateOne(
+            {
+              _id: id,
+            },
+            {
+              $set: { ...trimObjectValues(input), updatedAt: new Date() },
+            },
+            { returnDocument: "after" }
+          );
+        return update.modifiedCount > 0 ? { _id: id } : null;
+      }
+      const insert = await MongoDB()
+        .collection("products")
+        .insertOne({
+          ...trimObjectValues(input),
+          _id: uuid.v4(),
+          createdAt: new Date(),
+        });
 
       return insert.insertedId ? { _id: insert?.insertedId } : null;
     },
