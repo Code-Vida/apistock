@@ -24,4 +24,7 @@ type Mutation {
   #products
   createProduct(input: ProductInput): Product
   sales(input: ID): Product
+
+  #devolution
+  devolution(input: ID): Boolean
 }
