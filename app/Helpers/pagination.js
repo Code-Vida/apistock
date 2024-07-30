@@ -1,11 +1,11 @@
 "use strict";
 
 function getPaginationInfo(pagination = {}) {
-  const MAX_PER_PAGE = 100;
+  const MAX_PER_PAGE = 1000;
   const page = pagination.page || 1;
   const perPage = pagination.perPage
     ? Math.min(pagination.perPage, MAX_PER_PAGE)
-    : 30;
+    : MAX_PER_PAGE;
 
   return { page, perPage };
 }
