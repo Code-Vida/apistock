@@ -55,7 +55,7 @@ function MongoDB() {
         insertOne: (doc) => collection.insertOne(doc),
         updateOne: (filter, update, options) => collection.updateOne(filter, update, options),
         deleteOne: (filter) => collection.deleteOne(filter),
-        findOneAndUpdate: (filter) => collection.findOneAndUpdate(filter),
+        findOneAndUpdate: (filter, update, options) => collection.findOneAndUpdate(filter, update, options),
 
         // Acesso direto ao collection bruto, se precisar
         raw: () => collection,
