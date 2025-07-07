@@ -12,38 +12,38 @@ module.exports = {
     async getProduct(_, { pagination, input }) {
       const { page, perPage } = getPaginationInfo(pagination);
       const product = await MongoDB()
-        .collection("products")
+        .collection("products_new")
         .find(trimObjectValues(input))
         .skip(perPage * (page - 1))
         .limit(perPage)
         .sort({ updatedAt: 1 })
         .toArray();
 
-      const total = await MongoDB().collection("products").count(input);
+      const total = await MongoDB().collection("products_new").count(input);
 
-      const totalSalesSum = await MongoDB()
-        .collection("products")
-        .aggregate([
-          {
-            $group: {
-              _id: null,
-              totalValue: { $sum: { $multiply: ["$value", "$sales"] } },
-            },
-          },
-        ])
-        .toArray();
+      // const totalSalesSum = await MongoDB()
+      //   .collection("products_new")
+      //   .aggregate([
+      //     {
+      //       $group: {
+      //         _id: null,
+      //         totalValue: { $sum: { $multiply: ["$value", "$sales"] } },
+      //       },
+      //     },
+      //   ])
+      //   .toArray();
 
-      const totalSum = await MongoDB()
-        .collection("products")
-        .aggregate([
-          {
-            $group: {
-              _id: null,
-              totalSum: { $sum: "$purchaseValue" },
-            },
-          },
-        ])
-        .toArray();
+      // const totalSum = await MongoDB()
+      //   .collection("products")
+      //   .aggregate([
+      //     {
+      //       $group: {
+      //         _id: null,
+      //         totalSum: { $sum: "$purchaseValue" },
+      //       },
+      //     },
+      //   ])
+      //   .toArray();
 
       const result = {
         pages: {
@@ -53,10 +53,10 @@ module.exports = {
           perPage,
         },
         data: trimObjectValues(product),
-        total: {
-          totalSum: totalSum[0].totalSum,
-          totalSalesSum: totalSalesSum[0].totalValue,
-        },
+        // total: {
+        //   totalSum: totalSum[0].totalSum,
+        //   totalSalesSum: totalSalesSum[0].totalValue,
+        // },
       };
 
       return getPaginationResult(result);
@@ -103,55 +103,15 @@ module.exports = {
 
   Mutation: {
     async createProduct(_, args) {
-      const {
-        barCode,
-        amount,
-        brand,
-        model,
-        color,
-        number,
-        purchaseDate,
-        purchaseValue,
-        value,
-        id,
-      } = args.input;
+      const { input } = args;
 
-      const input = {
-        barCode: barCode,
-        amount: amount,
-        brand: brand,
-        model: model,
-        color: color,
-        number: number,
-        purchaseDate: purchaseDate,
-        purchaseValue: purchaseValue,
-        value: value,
-        updatedAt: new Date(),
-      };
+      const insert = await MongoDB().collection('products_new').insertOne({
+        ...trimObjectValues(input),
+        _id: uuid.v4(),
+        createdAt: new Date(),
+      })
 
-      if (id) {
-        const update = await MongoDB()
-          .collection("products")
-          .updateOne(
-            {
-              _id: id,
-            },
-            {
-              $set: { ...trimObjectValues(input), updatedAt: new Date() },
-            },
-            { returnDocument: "after" }
-          );
-        return update.modifiedCount > 0 ? { _id: id } : null;
-      }
-      const insert = await MongoDB()
-        .collection("products")
-        .insertOne({
-          ...trimObjectValues(input),
-          _id: uuid.v4(),
-          createdAt: new Date(),
-        });
-
-      return insert.insertedId ? { _id: insert?.insertedId } : null;
+      return insert.insertedId ? true : false;
     },
 
     async sales(_, args) {
@@ -176,5 +136,29 @@ module.exports = {
 
       return salesReport.insertedId ? { _id: salesReport?.insertedId } : null;
     },
+
+    async updateProduct(_, args) {
+      const { input } = args
+      console.log(input)
+      const result = await MongoDB().collection("products_new").replaceOne(
+        { _id: input.id },
+        input,
+        { returnDocument: "after" }
+      );
+
+      return result.modifiedCount ? true : false
+    },
+
+    async acknowledgeLowStock(_, { productId }) {
+      const updatedProduct = await MongoDB().collection('products_new').findByIdAndUpdate(
+        { _id: productId },
+        {
+          // Define a data atual para o campo
+          $set: { lowStockAcknowledgedAt: new Date() }
+        },
+        { new: true } // Retorna o documento atualizado
+      );
+      return updatedProduct;
+    }
   },
 };

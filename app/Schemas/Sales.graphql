@@ -1,0 +1,16 @@
+input SaleItemInput {
+  productId: ID!
+  variantInfo: String!
+  quantity: Int!
+  priceAtTimeOfSale: Float!
+  costAtTimeOfSale: Float
+}
+
+# Input principal para a mutação de criar a venda
+input CreateSaleInput {
+  items: [SaleItemInput!]!
+  paymentMethod: String!
+  totalAmount: Float! # Este será o valor ANTES do desconto (Subtotal)
+  discount: Float # MUDANÇA: Adicionado campo de desconto opcional
+  finalAmount: Float! # MUDANÇA: Adicionado campo para o valor final
+}

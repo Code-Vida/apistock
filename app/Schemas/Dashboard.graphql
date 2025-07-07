@@ -1,0 +1,12 @@
+type DashboardSummary {
+  totalSalesToday: Float!
+  itemsSoldToday: Int!
+  salesCountToday: Int!
+}
+
+type LowStockProduct {
+  id: ID!
+  brand: String!
+  model: String!
+  totalStock: Int!
+}

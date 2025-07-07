@@ -12,6 +12,10 @@ type Query {
   #report
   salesReport(input: Date): SalesReportResponse
   stockReport(input: ID): ProductResponse
+
+  #dashboard
+  dashboardSummary(date: String): DashboardSummary
+  lowStockProducts(limit: Int, threshold: Int): [LowStockProduct]
 }
 
 type Mutation {
@@ -22,9 +26,15 @@ type Mutation {
   createUser(input: UserInput!): UserResponse
 
   #products
-  createProduct(input: ProductInput): Product
+  createProduct(input: ProductInputNew): Boolean
   sales(input: ID): Product
+  updateProduct(input: ProductInputNew): Boolean
+  acknowledgeLowStock(productId: ID!): Product
 
   #devolution
   devolution(input: ID): Boolean
+
+  #sales
+    createSale(input: CreateSaleInput!): Boolean # Pode retornar a Venda se preferir
+
 }
