@@ -52,15 +52,24 @@ function MongoDB() {
         },
 
         // Métodos de escrita (sem collation)
-        insertOne: (doc) => collection.insertOne(doc),
+        insertOne: (doc, options) => collection.insertOne(doc, options),
         updateOne: (filter, update, options) => collection.updateOne(filter, update, options),
-        deleteOne: (filter) => collection.deleteOne(filter),
+        replaceOne: (filter, replacement, options) => collection.replaceOne(filter, replacement, options),
+        deleteOne: (filter, options) => collection.deleteOne(filter, options),
         findOneAndUpdate: (filter, update, options) => collection.findOneAndUpdate(filter, update, options),
+
+        findByIdAndUpdate: (id, update, options) => collection.findOneAndUpdate(id, update, options),
+        bulkWrite: (operations, options) => collection.bulkWrite(operations, options),
 
         // Acesso direto ao collection bruto, se precisar
         raw: () => collection,
       };
     },
+
+    getClient: () => {
+      // Este método simplesmente retorna a variável 'client' que já existe no escopo deste arquivo.
+      return client;
+    }
   };
 }
 
