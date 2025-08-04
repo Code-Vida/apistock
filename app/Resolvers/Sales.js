@@ -1,50 +1,58 @@
-const { MongoDB, client } = require("../database");
 const uuid = require("uuid");
 
-
-
 module.exports = {
+    Query: {
+
+    },
     Mutation: {
-        async createSale(_, { input }) {
-            // O client vem diretamente do seu módulo de conexão!
-            const session = client.startSession();
+        async createSale(_, { input }, context) {
+            // MUDANÇA: O client agora vem do contexto, injetado pelo Apollo Server.
+            const session = context.client.startSession();
 
             try {
                 const transactionResult = await session.withTransaction(async () => {
                     const saleDocument = {
-                        _id: uuid.v4(),
+                        _id: uuid.v4(), // Assumindo que 'uuid' está importado no topo do arquivo
                         createdAt: new Date(),
                         totalAmount: input.totalAmount,
                         paymentMethod: input.paymentMethod,
                         discount: input.discount,
                         finalAmount: input.finalAmount,
+                        customerId: input.customerId,
                         items: input.items.map(item => ({
                             productId: item.productId,
-                            colorSlug: item.colorSlug,
-                            number: item.number,
+                            variants: {
+                                // ATENÇÃO: Verifique se o frontend está enviando 'item.variants.color' e 'item.variants.number'
+                                // ou se os campos são 'item.colorSlug' e 'item.number' como antes.
+                                // Ajuste os nomes abaixo para corresponder ao que o frontend envia.
+                                color: item.variants.color,
+                                number: item.variants.number
+                            },
                             quantity: item.quantity,
                             priceAtTimeOfSale: item.priceAtTimeOfSale,
                             costAtTimeOfSale: item.costAtTimeOfSale,
                         }))
                     };
 
-                    // Agora usamos seu helper, passando a { session } nas options
-                    await MongoDB().collection('sales').insertOne(saleDocument, { session });
+                    // MUDANÇA: A função MongoDB() também vem do contexto.
+                    await context.MongoDB().collection('sales').insertOne(saleDocument, { session });
 
                     const stockUpdateOperations = input.items.map(item => ({
                         updateOne: {
                             filter: { _id: item.productId },
                             update: { $inc: { "variants.$[variant].items.$[item].amount": -item.quantity } },
                             arrayFilters: [
-                                { "variant.colorSlug": item.colorSlug },
-                                { "item.number": item.number }
+                                // Ajuste os nomes aqui também para corresponder ao que o frontend env-a
+                                { "variant.colorSlug": item.variants.color },
+                                { "item.number": item.variants.number }
                             ]
                         }
                     }));
 
                     if (stockUpdateOperations.length > 0) {
-                        // Usamos o novo método bulkWrite no seu helper, passando a { session }
-                        await MongoDB().collection('products_new').bulkWrite(stockUpdateOperations, { session });
+                        // MUDANÇA: Usando o MongoDB() do contexto.
+                        // ATENÇÃO: Verifique o nome da sua collection de produtos.
+                        await context.MongoDB().collection('products').bulkWrite(stockUpdateOperations, { session });
                     }
                 });
 

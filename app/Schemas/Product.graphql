@@ -38,6 +38,7 @@ input ProductInput {
   purchaseDate: Date
   amount: Int
   lowStockThreshold: Int
+  limit: Int
 }
 
 type Total {
@@ -76,4 +77,10 @@ input InputProductItem {
   amount: Int
   sales: Int
   barCode: String
+}
+
+input ProductSearchInput {
+  text: String
+  barCode: String
+  limit: Int
 }

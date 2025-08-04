@@ -21,29 +21,6 @@ module.exports = {
 
       const total = await MongoDB().collection("products_new").count(input);
 
-      // const totalSalesSum = await MongoDB()
-      //   .collection("products_new")
-      //   .aggregate([
-      //     {
-      //       $group: {
-      //         _id: null,
-      //         totalValue: { $sum: { $multiply: ["$value", "$sales"] } },
-      //       },
-      //     },
-      //   ])
-      //   .toArray();
-
-      // const totalSum = await MongoDB()
-      //   .collection("products")
-      //   .aggregate([
-      //     {
-      //       $group: {
-      //         _id: null,
-      //         totalSum: { $sum: "$purchaseValue" },
-      //       },
-      //     },
-      //   ])
-      //   .toArray();
 
       const result = {
         pages: {
@@ -53,14 +30,44 @@ module.exports = {
           perPage,
         },
         data: trimObjectValues(product),
-        // total: {
-        //   totalSum: totalSum[0].totalSum,
-        //   totalSalesSum: totalSalesSum[0].totalValue,
-        // },
+    
       };
 
       return getPaginationResult(result);
     },
+    async searchProducts(_, { input }) {
+      const filter = {};
+      const limit = input.limit || 10; // Limita a 10 resultados por padrão
+
+      // Lógica de filtro dinâmico
+      if (input && input.barCode) {
+        // Se um código de barras for fornecido, a busca é específica
+        filter['variants.items.barCode'] = input.barCode;
+      } else if (input && input.text) {
+        // Se um texto for fornecido, busca por marca OU modelo (case-insensitive)
+        const searchRegex = new RegExp(input.text, 'i');
+        filter.$or = [
+          { brand: searchRegex },
+          { model: searchRegex }
+        ];
+      }
+
+      // Se o input estiver vazio, retorna uma lista vazia para não sobrecarregar o banco
+      if (Object.keys(filter).length === 0) {
+        return [];
+      }
+
+      // Executa a busca no banco com o filtro e o limite
+      const products = await MongoDB()
+        .collection("products_new") // Garanta que o nome da collection está correto
+        .find(filter)
+        .limit(limit)
+        .toArray();
+
+      // Retorna um array simples de produtos, como a tela do PDV espera
+      return products;
+    }
+  
   },
 
   Product: {

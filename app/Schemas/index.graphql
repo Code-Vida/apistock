@@ -6,16 +6,32 @@ type Query {
 
   #products
   getProduct(input: ProductInput, pagination: PaginationInput): ProductResponse
-
+  searchProducts(input: ProductSearchInput): [Product]
   #audiences(pagination: PaginationInput): AudiencesResponse @auth(requires: [USER])
 
   #report
   salesReport(input: Date): SalesReportResponse
   stockReport(input: ID): ProductResponse
-
+  topSellingProducts(startDate: String! endDate: String! sortBy: String limit: Int): [TopSellingProduct]
+  getProfitabilityReport(startDate: String!, endDate: String!): ProfitabilityReport
+  getDailyCashClosingReport(date: String!): [PaymentMethodSummary]
+  getInventoryReport: InventoryReport
+  
   #dashboard
   dashboardSummary(date: String): DashboardSummary
   lowStockProducts(limit: Int, threshold: Int): [LowStockProduct]
+
+  #sales
+  getSales(startDate: String, endDate: String, limit: Int, offset: Int): [Sale]
+
+  #cash
+  getActiveCashSession: CashSession
+  getActiveCashSessionSummary: ActiveCashSessionSummary
+
+  #customers
+  getCustomerById(id: ID!): Customer
+  searchCustomers(searchText: String!): [Customer]
+
 }
 
 type Mutation {
@@ -35,6 +51,17 @@ type Mutation {
   devolution(input: ID): Boolean
 
   #sales
-    createSale(input: CreateSaleInput!): Boolean # Pode retornar a Venda se preferir
+  createSale(input: CreateSaleInput!): Boolean # Pode retornar a Venda se preferir
+
+  #cash
+  openCashSession(openingBalance: Float!): CashSession!
+  addCashMovement(input: CashMovementInput!): Boolean
+  closeCashSession(input: CloseCashSessionInput!): CashSession
+
+
+  #customers
+  createCustomer(input: CustomerInput!): Customer
+  updateCustomer(id: ID!, input: CustomerInput!): Customer
+
 
 }
