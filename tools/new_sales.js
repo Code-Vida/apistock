@@ -17,9 +17,9 @@ const pipeline = [
             items: [
                 {
                     productId: "$product._id",
-                    variantInfo: {
+                    variants: {
                         color: "$product.color",
-                        size: "$product.number"
+                        number: "$product.number"
                     },
                     quantity: "$salesAmount",
                     priceAtTimeOfSale: "$product.value",

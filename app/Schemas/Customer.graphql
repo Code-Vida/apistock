@@ -1,0 +1,14 @@
+type Customer {
+  _id: ID!
+  name: String!
+  phone: String
+  email: String
+  cpf: String
+}
+
+input CustomerInput {
+  name: String!
+  phone: String
+  email: String
+  cpf: String
+}

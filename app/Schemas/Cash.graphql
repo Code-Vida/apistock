@@ -1,0 +1,37 @@
+type CashSession {
+  _id: ID!
+  openedAt: String!
+  closedAt: String
+  status: String!
+  openingBalance: Float!
+  difference: Float
+  # Adicione outros campos que você queira retornar para o app
+}
+
+enum CashMovementType {
+  DEPOSIT
+  WITHDRAWAL
+}
+
+input CashMovementInput {
+  type: CashMovementType! # Deve ser "DEPOSIT" ou "WITHDRAWAL"
+  amount: Float!
+  description: String
+}
+
+input CloseCashSessionInput {
+  actualBalance: Float! # O valor que o operador contou na gaveta
+}
+
+type CashMovementsSummary {
+  deposits: Float! # Entradas / Suprimentos
+  withdrawals: Float! # Saídas / Sangrias
+}
+
+type ActiveCashSessionSummary {
+  openingBalance: Float!
+  totalSalesByPaymentMethod: [PaymentMethodSummary!]!
+  totalMovements: CashMovementsSummary!
+  expectedBalanceInCash: Float!
+}
+

@@ -1,0 +1,88 @@
+# Representa o card de resumo de lucratividade
+type ProfitabilitySummary {
+    totalRevenue: Float! # Faturamento bruto(soma de priceAtTimeOfSale)
+totalCost: Float!    # Custo total dos produtos vendidos(soma de costAtTimeOfSale)
+totalProfit: Float!  # Lucro bruto(Revenue - Cost)
+profitMargin: Float! # Margem de lucro em % ((Profit / Revenue) * 100)
+}
+
+# Representa um produto no ranking de lucratividade
+type ProfitableProduct {
+    productId: ID!
+    brand: String
+    model: String
+    totalProfit: Float!
+    totalQuantitySold: Int!
+}
+
+# O objeto completo que a nossa query principal irá retornar
+type ProfitabilityReport {
+    summary: ProfitabilitySummary!
+    topProducts: [ProfitableProduct!]!
+}
+
+
+
+
+type TopSellingProduct {
+  productId: ID!
+  brand: String
+  model: String
+  totalQuantitySold: Int!
+  totalRevenue: Float!
+}
+
+# Definição de um item individual dentro de uma venda
+type SaleItem {
+  productId: ID!
+  variants: ProductVariant
+  quantity: Int!
+  priceAtTimeOfSale: Float
+  costAtTimeOfSale: Float
+}
+
+# Definição do documento principal de uma Venda
+type Sale {
+  _id: ID!
+  createdAt: String! # Usamos String para simplicidade, pode ser um tipo DateTime customizado
+  totalAmount: Float
+  discount: Float
+  finalAmount: Float
+  paymentMethod: String!
+  items: [SaleItem!]!
+  customerId: ID
+}
+
+input ProductSalesVariant {
+  colorSlug: String
+  number: Int
+}
+
+type PaymentMethodSummary {
+  paymentMethod: String!
+  totalAmount: Float!
+  salesCount: Int!
+}
+
+# Representa os cards de resumo no topo do relatório
+type InventorySummary {
+  totalCostValue: Float!    # Valor total do estoque a preço de custo
+  totalSaleValue: Float!    # Valor total do estoque a preço de venda
+  totalItemCount: Int!      # Número total de peças no estoque
+}
+
+# Representa um produto na lista detalhada do inventário
+type InventoryProductItem {
+  id: ID!
+  brand: String
+  model: String
+  totalQuantity: Int!       # Quantidade total em estoque para este produto (somando todas as variantes)
+  totalCostValue: Float!    # Valor de custo total para este produto
+  totalSaleValue: Float!    # Valor de venda total para este produto
+}
+
+# O objeto completo que a query principal irá retornar
+type InventoryReport {
+  summary: InventorySummary!
+  products: [InventoryProductItem!]!
+}
