@@ -12,3 +12,11 @@ input CustomerInput {
   email: String
   cpf: String
 }
+
+type CustomerDetails {
+  customer: Customer!
+  totalSpent: Float!
+  totalPurchases: Int!
+  lastPurchaseDate: String
+  salesHistory: [Sale]!
+}
