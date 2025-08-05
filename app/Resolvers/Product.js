@@ -212,6 +212,72 @@ module.exports = {
         await session.endSession();
       }
     },
+
+    createReturn: async (_, { input }, context) => {
+      const { client, MongoDB } = context;
+      const session = client.startSession();
+
+      try {
+        let returnResult = false;
+        await session.withTransaction(async () => {
+          // 1. Cria o registro da devolução
+          const returnDocument = {
+            _id: uuid.v4(),
+            originalSaleId: input.originalSaleId,
+            items: input.items,
+            totalRefundAmount: input.totalRefundAmount,
+            refundMethod: input.refundMethod,
+            reason: input.reason,
+            createdAt: new Date(),
+          };
+          await MongoDB().collection('returns').insertOne(returnDocument, { session });
+
+          // 2. Prepara as operações para retornar os itens ao estoque
+          const stockUpdateOperations = input.items.map(item => ({
+            updateOne: {
+              filter: { _id: item.productId },
+              update: { $inc: { "variants.$[variant].items.$[item].amount": item.quantity } }, // Incrementa o estoque
+              arrayFilters: [
+                { "variant.colorSlug": item.colorSlug },
+                { "item.number": item.number }
+              ]
+            }
+          }));
+
+          if (stockUpdateOperations.length > 0) {
+            await MongoDB().collection('products_new').bulkWrite(stockUpdateOperations, { session });
+          }
+
+          // 3. Se o reembolso for em dinheiro, registra uma saída (sangria) no caixa ativo
+          if (input.refundMethod === 'Dinheiro') {
+            const activeSession = await MongoDB().collection('cash').findOne({ status: 'OPEN' }, { session });
+            if (!activeSession) {
+              // Se não houver caixa aberto, a transação falha para evitar inconsistência.
+              throw new Error("Nenhum caixa aberto para registrar a saída do reembolso.");
+            }
+            const withdrawalMovement = {
+              _id: uuid.v4(),
+              sessionId: activeSession._id,
+              type: 'WITHDRAWAL',
+              amount: input.totalRefundAmount,
+              description: `Devolução da Venda #${input.originalSaleId.substring(0, 8)}`,
+              createdAt: new Date(),
+            };
+            await MongoDB().collection('cash_movements').insertOne(withdrawalMovement, { session });
+          }
+
+          returnResult = true;
+        });
+
+        return returnResult;
+
+      } catch (error) {
+        console.error("Erro ao processar devolução:", error);
+        throw new Error(error.message || "Não foi possível registrar a devolução.");
+      } finally {
+        await session.endSession();
+      }
+    },
   },
 };
 
