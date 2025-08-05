@@ -166,6 +166,69 @@ module.exports = {
         { new: true } // Retorna o documento atualizado
       );
       return updatedProduct;
-    }
+    },
+
+    processDunCode: async (_, { dunCode, quantityPerEan }, { MongoDB, client }) => {
+      // Para este caso, vamos assumir que um DUN representa UM tipo de produto (um EAN)
+      // em múltiplas unidades. Se um DUN representa múltiplos EANs, a lógica
+      // precisaria de uma tabela de mapeamento.
+
+      const eanCode = dunToEan(dunCode);
+
+      const session = client.startSession();
+      try {
+        let updatedCount = 0;
+        let notFoundEans = [];
+
+        await session.withTransaction(async () => {
+          const productsCollection = MongoDB().collection('products_new');
+
+          // Tenta encontrar o produto pelo código EAN em qualquer uma de suas variantes
+          const updateResult = await productsCollection.updateOne(
+            { "variants.items.barCode": eanCode },
+            { $inc: { "variants.$[].items.$[item].amount": quantityPerEan } },
+            {
+              arrayFilters: [{ "item.barCode": eanCode }],
+              session
+            }
+          );
+
+          if (updateResult.modifiedCount > 0) {
+            updatedCount = updateResult.modifiedCount;
+          } else {
+            notFoundEans.push(eanCode);
+          }
+        });
+
+        return {
+          updatedProductsCount: updatedCount,
+          notFoundEans: notFoundEans,
+        };
+
+      } catch (error) {
+        console.error("Erro ao processar código DUN:", error);
+        throw new Error(error.message || "Não foi possível processar a entrada de estoque.");
+      } finally {
+        await session.endSession();
+      }
+    },
   },
 };
+
+
+function dunToEan(dunCode) {
+  if (dunCode.length !== 14 || !/^\d+$/.test(dunCode)) {
+    throw new Error("Código DUN-14 inválido.");
+  }
+  // Remove o primeiro dígito (variável logística) e o último (dígito verificador)
+  const eanBase = dunCode.substring(1, 13);
+
+  // Recalcula o dígito verificador para o EAN-13
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    sum += parseInt(eanBase[i]) * (i % 2 === 0 ? 1 : 3);
+  }
+  const checksum = (10 - (sum % 10)) % 10;
+
+  return eanBase + checksum;
+}

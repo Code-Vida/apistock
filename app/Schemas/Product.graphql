@@ -84,3 +84,8 @@ input ProductSearchInput {
   barCode: String
   limit: Int
 }
+
+type StockEntryResult {
+  updatedProductsCount: Int!
+  notFoundEans: [String!]!
+}

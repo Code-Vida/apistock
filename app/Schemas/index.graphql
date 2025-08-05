@@ -32,6 +32,7 @@ type Query {
   getCustomerById(id: ID!): Customer
   searchCustomers(searchText: String!): [Customer]
   getCustomerDetails(id: ID!): CustomerDetails
+  getCustomerMarketingReport(input: CustomerMarketingInput!): [Customer]
 
 }
 
@@ -47,6 +48,7 @@ type Mutation {
   sales(input: ID): Product
   updateProduct(input: ProductInputNew): Boolean
   acknowledgeLowStock(productId: ID!): Product
+  processDunCode(dunCode: String!, quantityPerEan: Int!): StockEntryResult!
 
   #devolution
   devolution(input: ID): Boolean
@@ -63,6 +65,7 @@ type Mutation {
   #customers
   createCustomer(input: CustomerInput!): Customer
   updateCustomer(id: ID!, input: CustomerInput!): Customer
+  
 
 
 }
