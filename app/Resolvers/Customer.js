@@ -1,5 +1,7 @@
 "use strict";
 const { v4: uuidv4 } = require('uuid');
+const { subDays } = require('date-fns'); 
+const { MongoDB } = require('../database');
 
 module.exports = {
     Query: {
@@ -50,6 +52,56 @@ module.exports = {
             }
         },
 
+        getCustomerMarketingReport: async (_, { input }) => {
+            const { filterType, limit = 20, daysSinceLastPurchase = 90 } = input;
+
+            let pipeline = [];
+
+            if (filterType === 'TOP_BUYERS_VALUE') {
+                pipeline = [
+                    { $group: { _id: "$customerId", totalSpent: { $sum: "$finalAmount" } } },
+                    { $sort: { totalSpent: -1 } },
+                    { $limit: limit }
+                ];
+            } else if (filterType === 'TOP_BUYERS_FREQUENCY') {
+                pipeline = [
+                    { $group: { _id: "$customerId", totalPurchases: { $sum: 1 } } },
+                    { $sort: { totalPurchases: -1 } },
+                    { $limit: limit }
+                ];
+            } else if (filterType === 'AT_RISK') {
+                pipeline = [
+                    { $sort: { createdAt: -1 } },
+                    { $group: { _id: "$customerId", lastPurchaseDate: { $first: "$createdAt" } } },
+                    { $match: { lastPurchaseDate: { $lte: subDays(new Date(), daysSinceLastPurchase) } } },
+                    { $limit: limit }
+                ];
+            } else {
+                throw new Error("Tipo de filtro de marketing inválido.");
+            }
+
+            // Adiciona o $lookup para buscar os detalhes completos dos clientes
+            pipeline.push(
+                {
+                    $lookup: {
+                        from: "customers", // O nome da sua collection de clientes
+                        localField: "_id",
+                        foreignField: "_id",
+                        as: "customerInfo"
+                    }
+                },
+                { $unwind: "$customerInfo" },
+                { $replaceRoot: { newRoot: "$customerInfo" } } // Substitui a raiz pelo documento do cliente
+            );
+
+            try {
+                const customers = await MongoDB().collection('sales').aggregate(pipeline).toArray();
+                return customers;
+            } catch (error) {
+                console.error("Erro ao gerar relatório de marketing:", error);
+                throw new Error("Não foi possível gerar o relatório.");
+            }
+        },
     },
 
     Mutation: {
