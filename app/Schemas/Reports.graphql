@@ -22,8 +22,6 @@ type ProfitabilityReport {
 }
 
 
-
-
 type TopSellingProduct {
   productId: ID!
   brand: String
@@ -32,13 +30,19 @@ type TopSellingProduct {
   totalRevenue: Float!
 }
 
+type ProducSaletVariant {
+  colorSlug: String
+  number: Int
+}
+
 # Definição de um item individual dentro de uma venda
 type SaleItem {
   productId: ID!
-  variants: ProductVariant
+  variants: ProducSaletVariant
   quantity: Int!
   priceAtTimeOfSale: Float
   costAtTimeOfSale: Float
+  product: Product
 }
 
 # Definição do documento principal de uma Venda

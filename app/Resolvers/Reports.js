@@ -5,10 +5,11 @@ const { startOfDay, endOfDay, parseISO } = require('date-fns'); // Ótima lib pa
 
 module.exports = {
     Query: {
-        getSales: async (_, { startDate, endDate, limit = 20, offset = 0 }) => {
+        getSales: async (_, { startDate, endDate, limit = 20, offset = 0 }, context) => {
+            const { MongoDB } = context; // Usando o contexto para consistência
             const filter = {};
 
-            // Adiciona o filtro de data se os parâmetros forem fornecidos
+            // Lógica para filtro de data (continua a mesma)
             if (startDate && endDate) {
                 filter.createdAt = {
                     $gte: startOfDay(parseISO(startDate)),
@@ -21,15 +22,59 @@ module.exports = {
             }
 
             try {
-                // Busca no banco de dados usando os filtros, ordenando pelas mais recentes
-                const sales = await MongoDB().collection('sales')
-                    .find(filter) // Aplica os filtros de data
-                    .sort({ createdAt: -1 }) // -1 para ordem decrescente (mais novas primeiro)
-                    .skip(offset)             // Pula um número de documentos (para paginação)
-                    .limit(limit)             // Limita o número de resultados por página
-                    .toArray(); // Converte o cursor para um array
+                // Pipeline de agregação para buscar vendas e enriquecer com dados do produto
+                const pipeline = [
+                    // 1. Aplica os filtros de data e paginação primeiro para otimizar
+                    { $match: filter },
+                    { $sort: { createdAt: -1 } },
+                    { $skip: offset },
+                    { $limit: limit },
 
+                    // 2. Desconstrói o array de itens para processar cada um
+                    { $unwind: "$items" },
+
+                    // 3. Faz o "JOIN" com a collection de produtos para buscar os detalhes
+                    {
+                        $lookup: {
+                            from: "products_new", // O nome exato da sua collection de produtos
+                            localField: "items.productId",
+                            foreignField: "_id",
+                            as: "items.productInfo" // Armazena o resultado em um novo campo temporário
+                        }
+                    },
+
+                    // 4. O lookup retorna um array, então o desconstruímos para ter um objeto
+                    { $unwind: "$items.productInfo" },
+
+                    // 5. Reagrupa os itens de volta em suas respectivas vendas
+                    {
+                        $group: {
+                            _id: "$_id",
+                            createdAt: { $first: "$createdAt" },
+                            totalAmount: { $first: "$totalAmount" },
+                            discount: { $first: "$discount" },
+                            finalAmount: { $first: "$finalAmount" },
+                            paymentMethod: { $first: "$paymentMethod" },
+                            items: {
+                                $push: { // Adiciona cada item modificado de volta ao array 'items'
+                                    productId: "$items.productId",
+                                    product: "$items.productInfo", // Anexa o documento completo do produto
+                                    variants: "$items.variants",
+                                    quantity: "$items.quantity",
+                                    priceAtTimeOfSale: "$items.priceAtTimeOfSale",
+                                    costAtTimeOfSale: "$items.costAtTimeOfSale"
+                                }
+                            }
+                        }
+                    },
+                    // 6. Reordena o resultado final, pois o $group pode alterar a ordem
+                    { $sort: { createdAt: -1 } }
+                ];
+
+                const sales = await MongoDB().collection('sales').aggregate(pipeline).toArray();
+                console.log("Vendas encontradas:", sales);
                 return sales;
+
             } catch (error) {
                 console.error("Erro ao buscar histórico de vendas:", error);
                 throw new Error("Não foi possível carregar o histórico de vendas.");
