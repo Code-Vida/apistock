@@ -6,7 +6,7 @@ module.exports = {
         getActiveCashSession: async (_, __, context) => {
             try {
                 // Acessa a função MongoDB através do contexto
-                const activeSession = await context.MongoDB().collection('cash').findOne({ status: 'OPEN' });
+                const activeSession = await context.MongoDB(context).collection('cash').findOne({ status: 'OPEN' });
                 return activeSession;
             } catch (error) {
                 console.error("Erro ao buscar sessão de caixa ativa:", error);
@@ -14,10 +14,9 @@ module.exports = {
             }
         },
         getActiveCashSessionSummary: async (_, __, context) => {
-            const { MongoDB } = context;
             try {
                 // 1. Encontra a sessão de caixa ativa
-                const activeSession = await MongoDB().collection('cash').findOne({ status: 'OPEN' });
+                const activeSession = await context.MongoDB(context).collection('cash').findOne({ status: 'OPEN' });
                 if (!activeSession) {
                     // Se não houver caixa aberto, não é um erro, apenas retorna nulo.
                     return null;
@@ -32,14 +31,14 @@ module.exports = {
                     { $group: { _id: "$paymentMethod", total: { $sum: "$finalAmount" }, salesCount: { $sum: 1 } } },
                     { $project: { _id: 0, paymentMethod: "$_id", totalAmount: "$total", salesCount: 1 } }
                 ];
-                const totalSalesByPaymentMethod = await MongoDB().collection('sales').aggregate(salesSummaryPipeline).toArray();
+                const totalSalesByPaymentMethod = await context.MongoDB(context).collection('sales').aggregate(salesSummaryPipeline).toArray();
 
                 // 3. Agrega os movimentos de caixa (entradas/saídas)
                 const movementsSummaryPipeline = [
                     { $match: { sessionId: activeSession._id, createdAt: { $gte: startDate, $lte: endDate } } },
                     { $group: { _id: "$type", total: { $sum: "$amount" } } }
                 ];
-                const movementsResult = await MongoDB().collection('cash_movements').aggregate(movementsSummaryPipeline).toArray();
+                const movementsResult = await context.MongoDB(context).collection('cash_movements').aggregate(movementsSummaryPipeline).toArray();
 
                 const totalDeposits = movementsResult.find(m => m._id === 'DEPOSIT')?.total || 0;
                 const totalWithdrawals = movementsResult.find(m => m._id === 'WITHDRAWAL')?.total || 0;
@@ -69,7 +68,7 @@ module.exports = {
     Mutation: {
         openCashSession: async (_, { openingBalance }, context) => {
             try {
-                const existingSession = await context.MongoDB().collection('cash').findOne({ status: 'OPEN' });
+                const existingSession = await context.MongoDB(context).collection('cash').findOne({ status: 'OPEN' });
                 if (existingSession) {
                     throw new Error("Já existe uma sessão de caixa aberta. Feche a sessão atual antes de abrir uma nova.");
                 }
@@ -84,7 +83,7 @@ module.exports = {
                     totalMovements: { withdrawals: 0, deposits: 0 },
                 };
 
-                const result = await context.MongoDB().collection('cash').insertOne(newSessionDocument);
+                const result = await context.MongoDB(context).collection('cash').insertOne(newSessionDocument);
 
                 if (!result.insertedId) {
                     throw new Error("Falha ao salvar a nova sessão no banco de dados.");
@@ -107,7 +106,7 @@ module.exports = {
             try {
                 let movementResult = false;
                 await session.withTransaction(async () => {
-                    const activeSession = await context.MongoDB().collection('cash').findOne({ status: 'OPEN' }, { session });
+                    const activeSession = await context.MongoDB(context).collection('cash').findOne({ status: 'OPEN' }, { session });
                     if (!activeSession) {
                         throw new Error("Nenhuma sessão de caixa está aberta.");
                     }
@@ -121,7 +120,7 @@ module.exports = {
                         createdAt: new Date(),
                     };
 
-                    const result = await context.MongoDB().collection('cash_movements').insertOne(newMovement, { session });
+                    const result = await context.MongoDB(context).collection('cash_movements').insertOne(newMovement, { session });
 
                     if (!result.insertedId) {
                         throw new Error("Falha ao registrar o movimento de caixa.");
@@ -140,7 +139,7 @@ module.exports = {
         },
 
         closeCashSession: async (_, { input }, context) => {
-            const { client, MongoDB } = context;
+            const { client } = context;
             const session = client.startSession();
 
             try {
@@ -149,7 +148,7 @@ module.exports = {
                 // O método withTransaction gerencia o início, commit e abort da transação automaticamente.
                 await session.withTransaction(async () => {
                     // --- 1. Encontrar a Sessão Ativa ---
-                    const activeSession = await MongoDB().collection('cash').findOne({ status: 'OPEN' }, { session });
+                    const activeSession = await context.MongoDB(context).collection('cash').findOne({ status: 'OPEN' }, { session });
                     if (!activeSession) {
                         throw new Error("Nenhuma sessão de caixa está aberta para ser fechada.");
                     }
@@ -163,14 +162,14 @@ module.exports = {
                         { $group: { _id: "$paymentMethod", total: { $sum: "$finalAmount" } } },
                         { $project: { _id: 0, paymentMethod: "$_id", total: 1 } }
                     ];
-                    const totalSalesByPaymentMethod = await MongoDB().collection('sales').aggregate(salesSummaryPipeline, { session }).toArray();
+                    const totalSalesByPaymentMethod = await context.MongoDB(context).collection('sales').aggregate(salesSummaryPipeline, { session }).toArray();
 
                     // --- 3. Calcular Totais de Movimentos de Caixa (Sangrias/Suprimentos) ---
                     const movementsSummaryPipeline = [
                         { $match: { sessionId: activeSession._id, createdAt: { $gte: startDate, $lte: endDate } } },
                         { $group: { _id: "$type", total: { $sum: "$amount" } } }
                     ];
-                    const movementsResult = await MongoDB().collection('cash_movements').aggregate(movementsSummaryPipeline, { session }).toArray();
+                    const movementsResult = await context.MongoDB(context).collection('cash_movements').aggregate(movementsSummaryPipeline, { session }).toArray();
 
                     const totalDeposits = movementsResult.find(m => m._id === 'DEPOSIT')?.total || 0;
                     const totalWithdrawals = movementsResult.find(m => m._id === 'WITHDRAWAL')?.total || 0;
@@ -181,7 +180,7 @@ module.exports = {
                     const difference = input.actualBalance - expectedBalance;
 
                     // --- 5. Atualizar a Sessão de Caixa ---
-                    const updateResult = await MongoDB().collection('cash').findOneAndUpdate(
+                    const updateResult = await context.MongoDB(context).collection('cash').findOneAndUpdate(
                         { _id: activeSession._id, status: 'OPEN' }, // Filtro de segurança
                         {
                             $set: {

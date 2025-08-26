@@ -30,7 +30,7 @@ type TopSellingProduct {
   totalRevenue: Float!
 }
 
-type ProducSaletVariant {
+type ProducSaleVariant {
   colorSlug: String
   number: Int
 }
@@ -38,7 +38,7 @@ type ProducSaletVariant {
 # Definição de um item individual dentro de uma venda
 type SaleItem {
   productId: ID!
-  variants: ProducSaletVariant
+  variants: ProducSaleVariant
   quantity: Int!
   priceAtTimeOfSale: Float
   costAtTimeOfSale: Float
@@ -89,4 +89,17 @@ type InventoryProductItem {
 type InventoryReport {
   summary: InventorySummary!
   products: [InventoryProductItem!]!
+}
+
+
+type SalesPerformanceReport {
+  totalSoldByUser: Float!
+  commissionEarned: Float! # Comissão base
+  bonusEarned: Float!      # Valor do bônus
+  totalCommission: Float!  # Comissão + Bônus
+  salesCountByUser: Int!
+  storeTotalSold: Float!
+  storeGoal: Float!
+  userGoal: Float!             # A meta individual do vendedor
+  userGoalProgress: Float!     # O progresso em % (ex: 105.5 para 105.5%)
 }

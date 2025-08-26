@@ -1,13 +1,12 @@
 "use strict";
-const { MongoDB } = require("../database");
-const { parseISO, addDays } = require("date-fns");
+const { addDays } = require("date-fns");
 
 module.exports = {
   Query: {
-    async salesReport(_, args) {
+    async salesReport(_, args, context) {
       const { salesDate } = args.input.data;
       const date = new Date(salesDate);
-      const report = await MongoDB()
+      const report = await context.MongoDB(context)
         .collection("salesReport")
         .find({
           salesDate: {
@@ -20,10 +19,10 @@ module.exports = {
       return { nodes: report };
     },
 
-    async stockReport(_, args) {
+    async stockReport(_, args, context) {
       const { barCode } = args.input;
 
-      const product = await MongoDB()
+      const product = await context.MongoDB(context)
         .collection("products")
         .findOne({ barCode: barCode });
 

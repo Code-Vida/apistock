@@ -1,16 +1,15 @@
-const { MongoDB } = require("../database");
 
 module.exports = {
   Query: {
-    async getAll() {
-      return await MongoDB().collection("users").find({}).toArray();
+    async getAll(_, __, context) {
+      return await context.MongoDB(context).collection("users").find({}).toArray();
     },
   },
   Mutation: {
     // async login(_, args, { req }) {
     //   const { email, password } = args.input;
 
-    //   const user = await MongoDB()
+    //   const user = await context.MongoDB(context)
     //     .collection("users")
     //     .findOne({ email: email });
     //   if (!user) {
@@ -25,8 +24,8 @@ module.exports = {
     //   return user;
     // },
 
-    async devolution(_, args) {
-      const devolution = await MongoDB()
+    async devolution(_, args, context) {
+      const devolution = await context.MongoDB(context)
         .collection("products")
         .findOneAndUpdate(
           {

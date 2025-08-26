@@ -6,7 +6,7 @@ module.exports = {
     },
     Mutation: {
         createSale: async (_, { input }, context) => {
-            const { client, MongoDB } = context;
+            const { client, user } = context;
             const session = client.startSession();
 
             try {
@@ -17,6 +17,7 @@ module.exports = {
                         _id: uuid.v4(),
                         createdAt: new Date(),
                         customerId: input.customerId,
+                        userId: user.userId, 
                         totalAmount: input.totalAmount,
                         paymentMethod: input.paymentMethod,
                         discount: input.discount,
@@ -32,12 +33,12 @@ module.exports = {
                             costAtTimeOfSale: item.costAtTimeOfSale,
                         })),
                     };
-                    await MongoDB().collection('sales').insertOne(saleDocument, { session });
+                    await context.MongoDB(context).collection('sales').insertOne(saleDocument, { session });
 
                     // --- ETAPA 2 (CORREÇÃO ROBUSTA): Atualizar o Estoque dos Produtos ---
                     // Usamos um loop com 'for...of' para garantir que as operações 'await' funcionem corretamente.
                     for (const item of input.items) {
-                        const productUpdateResult = await MongoDB().collection('products_new').updateOne(
+                        const productUpdateResult = await context.MongoDB(context).collection('products_new').updateOne(
                             {
                                 // Filtro principal: encontra o produto e o item específico
                                 _id: item.productId,
@@ -84,6 +85,48 @@ module.exports = {
             } finally {
                 await session.endSession();
             }
+        },
+
+        setUserCommissionRate: async (_, { userId, rate }, context) => {
+            const { user, MongoDB } = context;
+            if (user.role !== 'ADMIN') throw new Error("Apenas administradores podem definir comissões.");
+
+            const userToUpdate = await MongoDB(context).collection('users').findOne({ _id: userId });
+            if (!userToUpdate || userToUpdate.storeId !== user.storeId) {
+                throw new Error("Usuário não encontrado nesta loja.");
+            }
+
+            const result = await MongoDB(context).collection('users').findOneAndUpdate(
+                { _id: userId },
+                { $set: { commissionRate: rate } },
+                { returnDocument: 'after' }
+            );
+            return result;
+        },
+
+        setMonthlySalesGoal: async (_, { goal }, context) => {
+            const { user, MongoDB } = context;
+            if (user.role !== 'ADMIN') throw new Error("Apenas administradores podem definir metas.");
+
+            const result = await MongoDB(context).collection('stores').findOneAndUpdate(
+                { _id: user.storeId },
+                { $set: { monthlySalesGoal: goal } },
+                { returnDocument: 'after' }
+            );
+            return result;
+        },
+        setUserSalesGoal: async (_, { userId, goal }, context) => {
+            const { user, MongoDB } = context;
+            if (user.role !== 'ADMIN') throw new Error("Apenas administradores podem definir metas.");
+
+            // Lógica para encontrar e atualizar o usuário...
+            const result = await MongoDB(context).collection('users').findOneAndUpdate(
+                { _id: userId, storeId: user.storeId }, // Garante que o admin só edite usuários da sua loja
+                { $set: { monthlyGoal: goal } },
+                { returnDocument: 'after' }
+            );
+            if (!result) throw new Error("Usuário não encontrado.");
+            return result;
         },
     }
 }
