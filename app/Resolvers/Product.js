@@ -1,5 +1,5 @@
 "use strict";
-const { MongoDB } = require("../database");
+
 const uuid = require("uuid");
 const {
   getPaginationInfo,
@@ -9,9 +9,9 @@ const {
 
 module.exports = {
   Query: {
-    async getProduct(_, { pagination, input }) {
+    async getProduct(_, { pagination, input }, context) {
       const { page, perPage } = getPaginationInfo(pagination);
-      const product = await MongoDB()
+      const product = await context.MongoDB(context)
         .collection("products_new")
         .find(trimObjectValues(input))
         .skip(perPage * (page - 1))
@@ -19,7 +19,7 @@ module.exports = {
         .sort({ updatedAt: 1 })
         .toArray();
 
-      const total = await MongoDB().collection("products_new").count(input);
+      const total = await context.MongoDB(context).collection("products_new").count(input);
 
 
       const result = {
@@ -30,12 +30,12 @@ module.exports = {
           perPage,
         },
         data: trimObjectValues(product),
-    
+
       };
 
       return getPaginationResult(result);
     },
-    async searchProducts(_, { input }) {
+    async searchProducts(_, { input }, context) {
       const filter = {};
       const limit = input.limit || 10; // Limita a 10 resultados por padrão
 
@@ -58,7 +58,7 @@ module.exports = {
       }
 
       // Executa a busca no banco com o filtro e o limite
-      const products = await MongoDB()
+      const products = await context.MongoDB(context)
         .collection("products_new") // Garanta que o nome da collection está correto
         .find(filter)
         .limit(limit)
@@ -67,7 +67,7 @@ module.exports = {
       // Retorna um array simples de produtos, como a tela do PDV espera
       return products;
     }
-  
+
   },
 
   Product: {
@@ -77,8 +77,8 @@ module.exports = {
   },
 
   Total: {
-    async totalSalesSum() {
-      const totalSalesSum = await MongoDB()
+    async totalSalesSum(_, __, context) {
+      const totalSalesSum = await context.MongoDB(context)
         .collection("products")
         .aggregate([
           {
@@ -92,8 +92,8 @@ module.exports = {
       return totalSalesSum[0].totalValue;
     },
 
-    async totalSum() {
-      const totalSum = await MongoDB()
+    async totalSum(_, __, context) {
+      const totalSum = await context.MongoDB(context)
         .collection("products")
         .aggregate([
           {
@@ -109,10 +109,10 @@ module.exports = {
   },
 
   Mutation: {
-    async createProduct(_, args) {
+    async createProduct(_, args, context) {
       const { input } = args;
 
-      const insert = await MongoDB().collection('products_new').insertOne({
+      const insert = await context.MongoDB(context).collection('products_new').insertOne({
         ...trimObjectValues(input),
         _id: uuid.v4(),
         createdAt: new Date(),
@@ -121,8 +121,8 @@ module.exports = {
       return insert.insertedId ? true : false;
     },
 
-    async sales(_, args) {
-      const dropStock = await MongoDB()
+    async sales(_, args, context) {
+      const dropStock = await context.MongoDB(context)
         .collection("products")
         .findOneAndUpdate(
           {
@@ -132,7 +132,7 @@ module.exports = {
           { returnDocument: "after" }
         );
 
-      const salesReport = await MongoDB()
+      const salesReport = await context.MongoDB(context)
         .collection("salesReport")
         .insertOne({
           _id: uuid.v4(),
@@ -144,10 +144,10 @@ module.exports = {
       return salesReport.insertedId ? { _id: salesReport?.insertedId } : null;
     },
 
-    async updateProduct(_, args) {
+    async updateProduct(_, args, context) {
       const { input } = args
       console.log(input)
-      const result = await MongoDB().collection("products_new").replaceOne(
+      const result = await context.MongoDB(context).collection("products_new").replaceOne(
         { _id: input.id },
         input,
         { returnDocument: "after" }
@@ -156,8 +156,8 @@ module.exports = {
       return result.modifiedCount ? true : false
     },
 
-    async acknowledgeLowStock(_, { productId }) {
-      const updatedProduct = await MongoDB().collection('products_new').findByIdAndUpdate(
+    async acknowledgeLowStock(_, { productId }, context) {
+      const updatedProduct = await context.MongoDB(context).collection('products_new').findByIdAndUpdate(
         { _id: productId },
         {
           // Define a data atual para o campo
@@ -168,11 +168,11 @@ module.exports = {
       return updatedProduct;
     },
 
-    processDunCode: async (_, { dunCode, quantityPerEan }, { MongoDB, client }) => {
+    processDunCode: async (_, { dunCode, quantityPerEan }, context) => {
       // Para este caso, vamos assumir que um DUN representa UM tipo de produto (um EAN)
       // em múltiplas unidades. Se um DUN representa múltiplos EANs, a lógica
       // precisaria de uma tabela de mapeamento.
-
+      const { client } = context;
       const eanCode = dunToEan(dunCode);
 
       const session = client.startSession();
@@ -181,7 +181,7 @@ module.exports = {
         let notFoundEans = [];
 
         await session.withTransaction(async () => {
-          const productsCollection = MongoDB().collection('products_new');
+          const productsCollection = context.MongoDB(context).collection('products_new');
 
           // Tenta encontrar o produto pelo código EAN em qualquer uma de suas variantes
           const updateResult = await productsCollection.updateOne(
@@ -214,7 +214,7 @@ module.exports = {
     },
 
     createReturn: async (_, { input }, context) => {
-      const { client, MongoDB } = context;
+      const { client } = context;
       const session = client.startSession();
 
       try {
@@ -230,7 +230,7 @@ module.exports = {
             reason: input.reason,
             createdAt: new Date(),
           };
-          await MongoDB().collection('returns').insertOne(returnDocument, { session });
+          await context.MongoDB(context).collection('returns').insertOne(returnDocument, { session });
 
           // 2. Prepara as operações para retornar os itens ao estoque
           const stockUpdateOperations = input.items.map(item => ({
@@ -245,12 +245,12 @@ module.exports = {
           }));
 
           if (stockUpdateOperations.length > 0) {
-            await MongoDB().collection('products_new').bulkWrite(stockUpdateOperations, { session });
+            await context.MongoDB(context).collection('products_new').bulkWrite(stockUpdateOperations, { session });
           }
 
           // 3. Se o reembolso for em dinheiro, registra uma saída (sangria) no caixa ativo
           if (input.refundMethod === 'Dinheiro') {
-            const activeSession = await MongoDB().collection('cash').findOne({ status: 'OPEN' }, { session });
+            const activeSession = await context.MongoDB(context).collection('cash').findOne({ status: 'OPEN' }, { session });
             if (!activeSession) {
               // Se não houver caixa aberto, a transação falha para evitar inconsistência.
               throw new Error("Nenhum caixa aberto para registrar a saída do reembolso.");
@@ -263,7 +263,7 @@ module.exports = {
               description: `Devolução da Venda #${input.originalSaleId.substring(0, 8)}`,
               createdAt: new Date(),
             };
-            await MongoDB().collection('cash_movements').insertOne(withdrawalMovement, { session });
+            await context.MongoDB(context).collection('cash_movements').insertOne(withdrawalMovement, { session });
           }
 
           returnResult = true;

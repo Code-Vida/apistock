@@ -1,38 +1,49 @@
 scalar Date
 
 type Query {
-  version: String
-  getAll: [UserResponse]
+  version: String 
+  getAll: [UserResponse] @auth
 
   #products
-  getProduct(input: ProductInput, pagination: PaginationInput): ProductResponse
-  searchProducts(input: ProductSearchInput): [Product]
+  getProduct(input: ProductInput, pagination: PaginationInput): ProductResponse @auth
+  searchProducts(input: ProductSearchInput): [Product] @auth
   #audiences(pagination: PaginationInput): AudiencesResponse @auth(requires: [USER])
 
   #report
-  salesReport(input: Date): SalesReportResponse
-  stockReport(input: ID): ProductResponse
-  topSellingProducts(startDate: String! endDate: String! sortBy: String limit: Int): [TopSellingProduct]
-  getProfitabilityReport(startDate: String!, endDate: String!): ProfitabilityReport
-  getDailyCashClosingReport(date: String!): [PaymentMethodSummary]
-  getInventoryReport: InventoryReport
+  salesReport(input: Date): SalesReportResponse @auth
+  stockReport(input: ID): ProductResponse @auth
+  topSellingProducts(startDate: String! endDate: String! sortBy: String limit: Int): [TopSellingProduct] @auth
+  getProfitabilityReport(startDate: String!, endDate: String!): ProfitabilityReport @auth
+  getDailyCashClosingReport(date: String!): [PaymentMethodSummary] @auth
+  getInventoryReport: InventoryReport @auth
+  getSalesPerformanceReport(userId: ID, month: Int, year: Int): SalesPerformanceReport @auth
   
   #dashboard
-  dashboardSummary(date: String): DashboardSummary
-  lowStockProducts(limit: Int, threshold: Int): [LowStockProduct]
+  dashboardSummary(date: String): DashboardSummary @auth
+  lowStockProducts(limit: Int, threshold: Int): [LowStockProduct] @auth
 
   #sales
-  getSales(startDate: String, endDate: String, limit: Int, offset: Int): [Sale]
+  getSales(startDate: String, endDate: String, limit: Int, offset: Int): [Sale] @auth
 
   #cash
-  getActiveCashSession: CashSession
-  getActiveCashSessionSummary: ActiveCashSessionSummary
+  getActiveCashSession: CashSession @auth
+  getActiveCashSessionSummary: ActiveCashSessionSummary @auth
 
   #customers
-  getCustomerById(id: ID!): Customer
-  searchCustomers(searchText: String!): [Customer]
-  getCustomerDetails(id: ID!): CustomerDetails
-  getCustomerMarketingReport(input: CustomerMarketingInput!): [Customer]
+  getCustomerById(id: ID!): Customer @auth
+  searchCustomers(searchText: String!): [Customer] @auth
+  getCustomerDetails(id: ID!): CustomerDetails @auth
+  getCustomerMarketingReport(input: CustomerMarketingInput!): [Customer] @auth
+
+  #suppliers
+  getSuppliers(searchText: String): [Supplier] @auth
+  getSupplierById(id: ID!): Supplier @auth
+  getPurchaseOrders(status: String): [PurchaseOrder] @auth
+  getPurchaseOrderById(id: ID!): PurchaseOrder @auth
+
+  #user
+  me: User
+  getUsersByStore: [User]
 
 }
 
@@ -41,31 +52,50 @@ type Mutation {
 
   #user
   # login(input: LoginInput!): UserResponse
-  createUser(input: UserInput!): UserResponse
+  #createUser(input: UserInput!): UserResponse  @auth
 
   #products
-  createProduct(input: ProductInputNew): Boolean
-  sales(input: ID): Product
-  updateProduct(input: ProductInputNew): Boolean
-  acknowledgeLowStock(productId: ID!): Product
-  processDunCode(dunCode: String!, quantityPerEan: Int!): StockEntryResult!
+  createProduct(input: ProductInputNew): Boolean @auth
+  sales(input: ID): Product @auth
+  updateProduct(input: ProductInputNew): Boolean @auth
+  acknowledgeLowStock(productId: ID!): Product @auth
+  processDunCode(dunCode: String!, quantityPerEan: Int!): StockEntryResult! @auth
 
   #devolution
-  devolution(input: ID): Boolean
+  devolution(input: ID): Boolean @auth
+  createReturn(input: CreateReturnInput!): Boolean @auth
 
   #sales
-  createSale(input: CreateSaleInput!): Boolean # Pode retornar a Venda se preferir
+  createSale(input: CreateSaleInput!): Boolean  @auth# Pode retornar a Venda se preferir
 
   #cash
-  openCashSession(openingBalance: Float!): CashSession!
-  addCashMovement(input: CashMovementInput!): Boolean
-  closeCashSession(input: CloseCashSessionInput!): CashSession
-
+  openCashSession(openingBalance: Float!): CashSession! @auth
+  addCashMovement(input: CashMovementInput!): Boolean @auth
+  closeCashSession(input: CloseCashSessionInput!): CashSession @auth
 
   #customers
-  createCustomer(input: CustomerInput!): Customer
-  updateCustomer(id: ID!, input: CustomerInput!): Customer
-  
+  createCustomer(input: CustomerInput!): Customer @auth
+  updateCustomer(id: ID!, input: CustomerInput!): Customer @auth
 
+  #suppliers
+  createSupplier(input: SupplierInput!): Supplier @auth
+  updateSupplier(id: ID!, input: SupplierInput!): Supplier @auth
+  deleteSupplier(id: ID!): Boolean @auth
+  createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder @auth
+  receivePurchaseOrder(id: ID!): Boolean  @auth# Mutação para dar entrada no estoque
+
+
+  #login
+  signUp(storeName: String!, name: String!, email: String!, password: String!): AuthPayload!
+  login(email: String!, password: String!): AuthPayload!
+  setManagerPin(pin: String!): Boolean
+  authorizeAction(pin: String!): Boolean
+  createUser(input: CreateUserInput!): User
+  resetUserPassword(userId: ID!, newPassword: String!): Boolean
+
+  #commission and goals
+  setUserCommissionRate(userId: ID!, rate: Float!): User  
+  setMonthlySalesGoal(goal: Float!): Store
+  setUserSalesGoal(userId: ID!, goal: Float!): User
 
 }

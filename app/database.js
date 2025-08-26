@@ -6,7 +6,6 @@ const DB_NAME = process.env.MONGO_DATABASE;
 
 /**
  * Classe Singleton para gerenciar a conexão com o MongoDB.
- * Garante que apenas uma instância de conexão seja usada em toda a aplicação.
  */
 class MongoService {
   constructor() {
@@ -14,76 +13,114 @@ class MongoService {
     this.db = null;
   }
 
-  /**
-   * Conecta ao banco de dados. Deve ser chamado UMA VEZ na inicialização do servidor.
-   */
   async connect() {
-    if (this.db) {
-      console.log("MongoDB já está conectado.");
-      return;
-    }
+    if (this.db) return;
     try {
       await this.client.connect();
       this.db = this.client.db(DB_NAME);
       console.log("✅ Conectado ao MongoDB com sucesso.");
     } catch (error) {
       console.error("❌ Falha ao conectar com o MongoDB:", error);
-      process.exit(1); // Encerra a aplicação se não conseguir conectar ao DB
+      process.exit(1);
     }
   }
 
-  /**
-   * Retorna a instância do banco de dados (db).
-   */
   getDb() {
-    if (!this.db) {
-      throw new Error("A conexão com o MongoDB não foi inicializada. Chame o método connect() primeiro.");
-    }
+    if (!this.db) throw new Error("A conexão com o MongoDB não foi inicializada.");
     return this.db;
   }
 
-  /**
-   * Retorna a instância do cliente (client). Essencial para transações.
-   */
   getClient() {
     return this.client;
   }
 }
 
-// Cria e exporta uma instância ÚNICA da classe.
 const mongoInstance = new MongoService();
 
 /**
- * Sua função helper original, agora usando a instância segura do Singleton.
- * Você não precisa mudar como a chama no resto do seu código.
+ * Função helper que agora aceita o 'context' do resolver para aplicar
+ * o filtro de 'storeId' automaticamente em todas as operações.
  */
-function MongoDB() {
-  const database = mongoInstance.getDb(); // Pega a conexão já estabelecida
+function MongoDB(context) {
+  const database = mongoInstance.getDb();
+
+  // Extrai o storeId do usuário logado, se existir.
+  const storeId = context?.user?.storeId;
 
   return {
     collection: (name) => {
       const collection = database.collection(name);
       const defaultCollation = { locale: 'pt', strength: 2 };
 
-      // Seus métodos continuam funcionando da mesma forma
+      // Define quais collections são públicas e não precisam de storeId
+      const publicCollections = ['users', 'stores'];
+      const isProtectedCollection = !publicCollections.includes(name);
+
+      // MUDANÇA: Trava de segurança.
+      // Se a collection é protegida, mas não há um storeId no contexto, lança um erro.
+      if (isProtectedCollection && !storeId) {
+        throw new Error(`Acesso não autorizado à collection '${name}'. É necessário estar autenticado com uma loja válida.`);
+      }
+
+      // Define se o filtro de storeId deve ser aplicado
+      const applyStoreIdFilter = isProtectedCollection && storeId;
+
       return {
-        find: (filter = {}, options = {}) => collection.find(filter, { ...options, collation: defaultCollation }),
-        findOne: (filter = {}, options = {}) => collection.findOne(filter, { ...options, collation: defaultCollation }),
-        count: (filter = {}, options = {}) => collection.countDocuments(filter, { ...options, collation: defaultCollation }),
-        aggregate: (pipeline = [], options = {}) => collection.aggregate(pipeline, { ...options, collation: defaultCollation }),
-        insertOne: (doc, options) => collection.insertOne(doc, options),
-        updateOne: (filter, update, options) => collection.updateOne(filter, update, options),
-        replaceOne: (filter, replacement, options) => collection.replaceOne(filter, replacement, options),
-        deleteOne: (filter, options) => collection.deleteOne(filter, options),
-        findOneAndUpdate: (filter, update, options) => collection.findOneAndUpdate(filter, update, options),
-        findByIdAndUpdate: (id, update, options) => collection.findOneAndUpdate({ _id: id }, update, options),
-        bulkWrite: (operations, options) => collection.bulkWrite(operations, options),
+        // --- MÉTODOS DE LEITURA ---
+        find: (filter = {}, options = {}) => {
+          const secureFilter = applyStoreIdFilter ? { ...filter, storeId } : filter;
+          return collection.find(secureFilter, { ...options, collation: defaultCollation });
+        },
+        findOne: (filter = {}, options = {}) => {
+          const secureFilter = applyStoreIdFilter ? { ...filter, storeId } : filter;
+          return collection.findOne(secureFilter, { ...options, collation: defaultCollation });
+        },
+        count: (filter = {}, options = {}) => {
+          const secureFilter = applyStoreIdFilter ? { ...filter, storeId } : filter;
+          return collection.countDocuments(secureFilter, { ...options, collation: defaultCollation });
+        },
+        aggregate: (pipeline = [], options = {}) => {
+          const securePipeline = [...pipeline];
+          if (applyStoreIdFilter) {
+            securePipeline.unshift({ $match: { storeId } });
+          }
+          return collection.aggregate(securePipeline, { ...options, collation: defaultCollation });
+        },
+
+        // --- MÉTODOS DE ESCRITA ---
+        insertOne: (doc, options) => {
+          const secureDoc = applyStoreIdFilter ? { ...doc, storeId } : doc;
+          return collection.insertOne(secureDoc, options);
+        },
+        updateOne: (filter, update, options) => {
+          const secureFilter = applyStoreIdFilter ? { ...filter, storeId } : filter;
+          return collection.updateOne(secureFilter, update, options);
+        },
+        findOneAndUpdate: (filter, update, options) => {
+          const secureFilter = applyStoreIdFilter ? { ...filter, storeId } : filter;
+          return collection.findOneAndUpdate(secureFilter, update, options);
+        },
+        bulkWrite: (operations, options) => {
+          if (applyStoreIdFilter) {
+            operations.forEach(op => {
+              const opType = Object.keys(op)[0];
+              op[opType].filter = { ...op[opType].filter, storeId };
+            });
+          }
+          return collection.bulkWrite(operations, options);
+        },
+        deleteOne: (filter, options) => {
+          const secureFilter = applyStoreIdFilter ? { ...filter, storeId } : filter;
+          return collection.deleteOne(secureFilter, options);
+        },
+        findByIdAndUpdate: (id, update, options) => {
+          const secureFilter = applyStoreIdFilter ? { _id: id, storeId } : { _id: id };
+          return collection.findOneAndUpdate(secureFilter, update, options);
+        },
       };
     },
-    // O getClient agora também usa a instância segura
     getClient: () => mongoInstance.getClient(),
   };
 }
 
-// Exporta a instância para o connect inicial e a sua função helper
 module.exports = { mongoInstance, MongoDB };

@@ -1,13 +1,12 @@
 "use strict";
 const { v4: uuidv4 } = require('uuid');
-const { subDays } = require('date-fns'); 
-const { MongoDB } = require('../database');
+const { subDays } = require('date-fns');
 
 module.exports = {
     Query: {
-        searchCustomers: async (_, { searchText }, { MongoDB }) => {
+        searchCustomers: async (_, { searchText }, context) => {
             const searchRegex = new RegExp(searchText, 'i');
-            const customers = await MongoDB().collection('customers').find({
+            const customers = await context.MongoDB(context).collection('customers').find({
                 $or: [
                     { name: searchRegex },
                     { phone: searchRegex }
@@ -18,16 +17,15 @@ module.exports = {
 
         getCustomerDetails: async (_, { id }, context) => {
             try {
-                const { MongoDB } = context;
 
                 // 1. Busca o cliente pelo ID. Se não encontrar, lança um erro.
-                const customer = await MongoDB().collection('customers').findOne({ _id: id });
+                const customer = await context.MongoDB(context).collection('customers').findOne({ _id: id });
                 if (!customer) {
                     throw new Error("Cliente não encontrado.");
                 }
 
                 // 2. Busca todas as vendas associadas a este cliente, ordenadas pela mais recente
-                const salesHistory = await MongoDB().collection('sales').find({ customerId: id })
+                const salesHistory = await context.MongoDB(context).collection('sales').find({ customerId: id })
                     .sort({ createdAt: -1 })
                     .toArray();
 
@@ -52,7 +50,7 @@ module.exports = {
             }
         },
 
-        getCustomerMarketingReport: async (_, { input }) => {
+        getCustomerMarketingReport: async (_, { input }, context) => {
             const { filterType, limit = 20, daysSinceLastPurchase = 90 } = input;
 
             let pipeline = [];
@@ -95,7 +93,7 @@ module.exports = {
             );
 
             try {
-                const customers = await MongoDB().collection('sales').aggregate(pipeline).toArray();
+                const customers = await context.MongoDB(context).collection('sales').aggregate(pipeline).toArray();
                 return customers;
             } catch (error) {
                 console.error("Erro ao gerar relatório de marketing:", error);
@@ -105,13 +103,13 @@ module.exports = {
     },
 
     Mutation: {
-        createCustomer: async (_, { input }, { MongoDB }) => {
+        createCustomer: async (_, { input }, context) => {
             const newCustomer = {
                 _id: uuidv4(),
                 ...input,
                 createdAt: new Date(),
             };
-            await MongoDB().collection('customers').insertOne(newCustomer);
+            await context.MongoDB(context).collection('customers').insertOne(newCustomer);
             return newCustomer;
         },
 

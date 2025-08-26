@@ -1,0 +1,5 @@
+type Store {
+  _id: ID!
+  name: String!
+  monthlySalesGoal: Float # Meta de vendas do mês
+}

@@ -1,11 +1,10 @@
 "use strict";
-const { MongoDB } = require("../database");
 const { startOfDay, endOfDay, parseISO } = require('date-fns'); // Biblioteca para lidar com datas
 
 
 module.exports = {
     Query: {
-        dashboardSummary: async (_, { date }) => {
+        dashboardSummary: async (_, { date }, context) => {
             // Se nenhuma data for fornecida, usa a data de hoje.
             const targetDate = date ? parseISO(date) : new Date();
 
@@ -31,7 +30,7 @@ module.exports = {
                 }
             ];
 
-            const result = await MongoDB().collection("sales").aggregate(summaryPipeline).toArray();
+            const result = await context.MongoDB(context).collection("sales").aggregate(summaryPipeline).toArray();
 
             // Se não houver vendas, retorna um objeto com zeros
             if (result.length === 0) {
@@ -42,7 +41,7 @@ module.exports = {
         },
 
         // RESOLVER PARA PRODUTOS COM BAIXO ESTOQUE
-        lowStockProducts: async (_, { limit = 5, threshold = 10 }) => {
+        lowStockProducts: async (_, { limit = 5, threshold = 10 }, context) => {
             // Pipeline para encontrar produtos com estoque baixo
             const lowStockPipeline = [
                 // 1. Desconstrói o array de variantes para processar cada uma
@@ -81,7 +80,7 @@ module.exports = {
                 }
             ];
 
-            const result = await MongoDB().collection("products_new").aggregate(lowStockPipeline).toArray();
+            const result = await context.MongoDB(context).collection("products_new").aggregate(lowStockPipeline).toArray();
             return result;
         }
     },

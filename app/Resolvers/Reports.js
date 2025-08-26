@@ -1,12 +1,9 @@
-const { MongoDB } = require("../database");
-const { startOfDay, endOfDay, parseISO } = require('date-fns'); // Ótima lib para manipular datas
 
-
+const { startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } = require('date-fns'); // Ótima lib para manipular datas
 
 module.exports = {
     Query: {
         getSales: async (_, { startDate, endDate, limit = 20, offset = 0 }, context) => {
-            const { MongoDB } = context; // Usando o contexto para consistência
             const filter = {};
 
             // Lógica para filtro de data (continua a mesma)
@@ -71,7 +68,7 @@ module.exports = {
                     { $sort: { createdAt: -1 } }
                 ];
 
-                const sales = await MongoDB().collection('sales').aggregate(pipeline).toArray();
+                const sales = await context.MongoDB(context).collection('sales').aggregate(pipeline).toArray();
                 console.log("Vendas encontradas:", sales);
                 return sales;
 
@@ -81,7 +78,7 @@ module.exports = {
             }
         },
 
-        topSellingProducts: async (_, { startDate, endDate, sortBy = "QUANTITY", limit = 10 }) => {
+        topSellingProducts: async (_, { startDate, endDate, sortBy = "QUANTITY", limit = 10 }, context) => {
             try {
                 // Define o campo pelo qual vamos ordenar
                 const sortField = sortBy === "REVENUE" ? "totalRevenue" : "totalQuantitySold";
@@ -134,7 +131,7 @@ module.exports = {
                     },
                 ];
 
-                const result = await MongoDB().collection('sales').aggregate(pipeline).toArray();
+                const result = await context.MongoDB(context).collection('sales').aggregate(pipeline).toArray();
                 return result;
 
             } catch (error) {
@@ -143,7 +140,7 @@ module.exports = {
             }
         },
 
-        getProfitabilityReport: async (_, { startDate, endDate }) => {
+        getProfitabilityReport: async (_, { startDate, endDate }, context) => {
             try {
                 const start = startOfDay(parseISO(startDate));
                 const end = endOfDay(parseISO(endDate));
@@ -190,8 +187,8 @@ module.exports = {
 
                 // Executa as duas agregações em paralelo
                 const [summaryResult, topProductsResult] = await Promise.all([
-                    MongoDB().collection('sales').aggregate(summaryPipeline).toArray(),
-                    MongoDB().collection('sales').aggregate(topProductsPipeline).toArray()
+                    context.MongoDB(context).collection('sales').aggregate(summaryPipeline).toArray(),
+                    context.MongoDB(context).collection('sales').aggregate(topProductsPipeline).toArray()
                 ]);
 
                 // --- COMBINA OS RESULTADOS ---
@@ -213,8 +210,8 @@ module.exports = {
                 throw new Error("Não foi possível gerar o relatório.");
             }
         },
-        
-        getDailyCashClosingReport: async (_, { date }) => {
+
+        getDailyCashClosingReport: async (_, { date }, context) => {
             try {
                 const targetDate = parseISO(date);
                 const startDate = startOfDay(targetDate);
@@ -250,7 +247,7 @@ module.exports = {
                     }
                 ];
 
-                const result = await MongoDB().collection('sales').aggregate(pipeline).toArray();
+                const result = await context.MongoDB(context).collection('sales').aggregate(pipeline).toArray();
                 return result;
 
             } catch (error) {
@@ -259,7 +256,7 @@ module.exports = {
             }
         },
 
-        getInventoryReport: async () => {
+        getInventoryReport: async (_, __, context) => {
             try {
                 const pipeline = [
                     // 1. Desconstrói as variantes e depois os itens para ter um documento por SKU
@@ -313,7 +310,7 @@ module.exports = {
                     }
                 ];
 
-                const result = await MongoDB().collection('products_new').aggregate(pipeline).toArray();
+                const result = await context.MongoDB(context).collection('products_new').aggregate(pipeline).toArray();
 
                 // Se não houver produtos, retorna um relatório vazio
                 if (result.length === 0) {
@@ -329,6 +326,68 @@ module.exports = {
                 console.error("Erro ao gerar relatório de inventário:", error);
                 throw new Error("Não foi possível gerar o relatório de inventário.");
             }
+        },
+
+        getSalesPerformanceReport: async (_, { userId, month, year }, context) => {
+            const { user, MongoDB } = context;
+            if (!user) throw new Error("Autenticação necessária.");
+
+            const targetUserId = userId || user.userId;
+            if (userId && user.role !== 'ADMIN') {
+                throw new Error("Apenas administradores podem ver o relatório de outros usuários.");
+            }
+
+            const targetDate = (month && year) ? new Date(year, month - 1) : new Date();
+            const startDate = startOfMonth(targetDate);
+            const endDate = endOfMonth(targetDate);
+
+            // Busca os dados do usuário alvo
+            const targetUser = await MongoDB(context).collection('users').findOne({ _id: targetUserId });
+            if (!targetUser) throw new Error("Usuário do relatório não encontrado.");
+
+            const commissionRate = targetUser.commissionRate || 0;
+            const userGoal = targetUser.monthlyGoal || 0;
+
+            // Calcula as vendas do usuário
+            const userSalesPipeline = [
+                { $match: { userId: targetUserId, createdAt: { $gte: startDate, $lte: endDate } } },
+                { $group: { _id: null, totalSold: { $sum: "$finalAmount" }, salesCount: { $sum: 1 } } }
+            ];
+            const userResult = await MongoDB(context).collection('sales').aggregate(userSalesPipeline).toArray();
+            const totalSoldByUser = userResult[0]?.totalSold || 0;
+
+            // Calcula o progresso e os bônus
+            const userGoalProgress = userGoal > 0 ? (totalSoldByUser / userGoal) * 100 : 0;
+            let bonusPercentage = 0;
+            if (userGoalProgress >= 110) {
+                bonusPercentage = 1.10; // Super Bônus
+            } else if (userGoalProgress >= 105) {
+                bonusPercentage = 1.05; // Bônus
+            } else if (userGoalProgress >= 100) {
+                bonusPercentage = 1.0;  // Meta 100%
+            }
+
+            // Lógica de cálculo de comissão e bônus
+            const commissionEarned = (totalSoldByUser * commissionRate) / 100;
+            const bonusEarned = bonusPercentage > 0 ? (commissionEarned * bonusPercentage) - commissionEarned : 0;
+            const totalCommission = commissionEarned + bonusEarned;
+
+            // Busca dados da loja (já implementado antes)
+            const store = await MongoDB(context).collection('stores').findOne({ _id: user.storeId });
+            const storeSalesPipeline = [ /* ... */];
+            const storeResult = await MongoDB(context).collection('sales').aggregate(storeSalesPipeline).toArray();
+
+            return {
+                totalSoldByUser,
+                commissionEarned,
+                bonusEarned,
+                totalCommission,
+                salesCountByUser: userResult[0]?.salesCount || 0,
+                storeTotalSold: storeResult[0]?.totalSold || 0,
+                storeGoal: store.monthlySalesGoal || 0,
+                userGoal,
+                userGoalProgress,
+            };
         },
     }
 }
