@@ -54,7 +54,8 @@ type Sale {
   finalAmount: Float
   paymentMethod: String!
   items: [SaleItem!]!
-  customerId: ID
+  customer: Customer
+  nfceStatus: String
 }
 
 input ProductSalesVariant {
