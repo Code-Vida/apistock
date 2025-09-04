@@ -21,7 +21,7 @@ module.exports = {
                 filter.status = status;
             }
 
-            // Agregação para buscar as ordens e aninhar os dados do fornecedor
+            
             const pipeline = [
                 { $match: filter },
                 { $sort: { createdAt: -1 } },
@@ -44,10 +44,10 @@ module.exports = {
         getPurchaseOrderById: async (_, { id }, context) => {
             try {
                 const pipeline = [
-                    // 1. Encontra a ordem de compra específica pelo seu ID
+                    
                     { $match: { _id: id } },
 
-                    // 2. Busca os detalhes do fornecedor associado
+                    
                     {
                         $lookup: {
                             from: "suppliers",
@@ -57,29 +57,29 @@ module.exports = {
                         }
                     },
 
-                    // 3. Desconstrói o array de itens para processar cada produto
+                    
                     { $unwind: "$items" },
 
-                    // 4. Busca os detalhes de cada produto
+                    
                     {
                         $lookup: {
-                            from: "products_new", // O nome da sua collection de produtos
+                            from: "products_new", 
                             localField: "items.productId",
                             foreignField: "_id",
                             as: "items.productInfo"
                         }
                     },
 
-                    // 5. Reagrupa os itens de volta na ordem de compra
+                    
                     {
                         $group: {
                             _id: "$_id",
                             createdAt: { $first: "$createdAt" },
                             status: { $first: "$status" },
                             totalCost: { $first: "$totalCost" },
-                            supplier: { $first: { $arrayElemAt: ["$supplierInfo", 0] } }, // Pega o primeiro (e único) fornecedor
+                            supplier: { $first: { $arrayElemAt: ["$supplierInfo", 0] } }, 
                             items: {
-                                $push: { // Adiciona cada item enriquecido de volta ao array
+                                $push: { 
                                     quantity: "$items.quantity",
                                     costPrice: "$items.costPrice",
                                     product: { $arrayElemAt: ["$items.productInfo", 0] },
@@ -92,7 +92,7 @@ module.exports = {
 
                 const result = await context.MongoDB(context).collection('purchase_orders').aggregate(pipeline).toArray();
 
-                // A agregação retorna um array, então pegamos o primeiro (e único) resultado
+                
                 return result[0] || null;
 
             } catch (error) {
@@ -129,7 +129,7 @@ module.exports = {
         createPurchaseOrder: async (_, { input }, context) => {
             const { supplierId, items } = input;
 
-            // Calcula o custo total da ordem
+            
             const totalCost = items.reduce((sum, item) => sum + (item.costPrice * item.quantity), 0);
 
             const newOrder = {
@@ -148,8 +148,8 @@ module.exports = {
             };
 
             await context.MongoDB(context).collection('purchase_orders').insertOne(newOrder);
-            // Para retornar o objeto completo com os dados do fornecedor, precisaríamos de outro lookup.
-            // Por simplicidade, retornamos o documento inserido. O frontend pode refazer a query se necessário.
+            
+            
             return newOrder;
         },
 
@@ -166,7 +166,7 @@ module.exports = {
                         throw new Error("Ordem de compra não encontrada ou já recebida.");
                     }
 
-                    // Prepara as operações para ATUALIZAR o estoque
+                    
                     const stockUpdateOperations = purchaseOrder.items.map(item => ({
                         updateOne: {
                             filter: { _id: item.productId },
@@ -182,7 +182,7 @@ module.exports = {
                         await context.MongoDB(context).collection('products_new').bulkWrite(stockUpdateOperations, { session });
                     }
 
-                    // Atualiza o status da ordem de compra
+                    
                     await context.MongoDB(context).collection('purchase_orders').updateOne(
                         { _id: id },
                         { $set: { status: "RECEBIDO", receivedAt: new Date() } },

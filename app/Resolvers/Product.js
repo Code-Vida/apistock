@@ -37,14 +37,14 @@ module.exports = {
     },
     async searchProducts(_, { input }, context) {
       const filter = {};
-      const limit = input.limit || 10; // Limita a 10 resultados por padrão
+      const limit = input.limit || 10; 
 
-      // Lógica de filtro dinâmico
+      
       if (input && input.barCode) {
-        // Se um código de barras for fornecido, a busca é específica
+        
         filter['variants.items.barCode'] = input.barCode;
       } else if (input && input.text) {
-        // Se um texto for fornecido, busca por marca OU modelo (case-insensitive)
+        
         const searchRegex = new RegExp(input.text, 'i');
         filter.$or = [
           { brand: searchRegex },
@@ -52,19 +52,19 @@ module.exports = {
         ];
       }
 
-      // Se o input estiver vazio, retorna uma lista vazia para não sobrecarregar o banco
+      
       if (Object.keys(filter).length === 0) {
         return [];
       }
 
-      // Executa a busca no banco com o filtro e o limite
+      
       const products = await context.MongoDB(context)
-        .collection("products_new") // Garanta que o nome da collection está correto
+        .collection("products_new") 
         .find(filter)
         .limit(limit)
         .toArray();
 
-      // Retorna um array simples de produtos, como a tela do PDV espera
+      
       return products;
     }
 
@@ -160,18 +160,18 @@ module.exports = {
       const updatedProduct = await context.MongoDB(context).collection('products_new').findByIdAndUpdate(
         { _id: productId },
         {
-          // Define a data atual para o campo
+          
           $set: { lowStockAcknowledgedAt: new Date() }
         },
-        { new: true } // Retorna o documento atualizado
+        { new: true } 
       );
       return updatedProduct;
     },
 
     processDunCode: async (_, { dunCode, quantityPerEan }, context) => {
-      // Para este caso, vamos assumir que um DUN representa UM tipo de produto (um EAN)
-      // em múltiplas unidades. Se um DUN representa múltiplos EANs, a lógica
-      // precisaria de uma tabela de mapeamento.
+      
+      
+      
       const { client } = context;
       const eanCode = dunToEan(dunCode);
 
@@ -183,7 +183,7 @@ module.exports = {
         await session.withTransaction(async () => {
           const productsCollection = context.MongoDB(context).collection('products_new');
 
-          // Tenta encontrar o produto pelo código EAN em qualquer uma de suas variantes
+          
           const updateResult = await productsCollection.updateOne(
             { "variants.items.barCode": eanCode },
             { $inc: { "variants.$[].items.$[item].amount": quantityPerEan } },
@@ -220,7 +220,7 @@ module.exports = {
       try {
         let returnResult = false;
         await session.withTransaction(async () => {
-          // 1. Cria o registro da devolução
+          
           const returnDocument = {
             _id: uuid.v4(),
             originalSaleId: input.originalSaleId,
@@ -232,11 +232,11 @@ module.exports = {
           };
           await context.MongoDB(context).collection('returns').insertOne(returnDocument, { session });
 
-          // 2. Prepara as operações para retornar os itens ao estoque
+          
           const stockUpdateOperations = input.items.map(item => ({
             updateOne: {
               filter: { _id: item.productId },
-              update: { $inc: { "variants.$[variant].items.$[item].amount": item.quantity } }, // Incrementa o estoque
+              update: { $inc: { "variants.$[variant].items.$[item].amount": item.quantity } }, 
               arrayFilters: [
                 { "variant.colorSlug": item.colorSlug },
                 { "item.number": item.number }
@@ -248,11 +248,11 @@ module.exports = {
             await context.MongoDB(context).collection('products_new').bulkWrite(stockUpdateOperations, { session });
           }
 
-          // 3. Se o reembolso for em dinheiro, registra uma saída (sangria) no caixa ativo
+          
           if (input.refundMethod === 'Dinheiro') {
             const activeSession = await context.MongoDB(context).collection('cash').findOne({ status: 'OPEN' }, { session });
             if (!activeSession) {
-              // Se não houver caixa aberto, a transação falha para evitar inconsistência.
+              
               throw new Error("Nenhum caixa aberto para registrar a saída do reembolso.");
             }
             const withdrawalMovement = {
@@ -286,10 +286,10 @@ function dunToEan(dunCode) {
   if (dunCode.length !== 14 || !/^\d+$/.test(dunCode)) {
     throw new Error("Código DUN-14 inválido.");
   }
-  // Remove o primeiro dígito (variável logística) e o último (dígito verificador)
+  
   const eanBase = dunCode.substring(1, 13);
 
-  // Recalcula o dígito verificador para o EAN-13
+  
   let sum = 0;
   for (let i = 0; i < 12; i++) {
     sum += parseInt(eanBase[i]) * (i % 2 === 0 ? 1 : 3);

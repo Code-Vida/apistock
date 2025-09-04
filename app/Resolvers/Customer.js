@@ -18,24 +18,24 @@ module.exports = {
         getCustomerDetails: async (_, { id }, context) => {
             try {
 
-                // 1. Busca o cliente pelo ID. Se não encontrar, lança um erro.
+                
                 const customer = await context.MongoDB(context).collection('customers').findOne({ _id: id });
                 if (!customer) {
                     throw new Error("Cliente não encontrado.");
                 }
 
-                // 2. Busca todas as vendas associadas a este cliente, ordenadas pela mais recente
+                
                 const salesHistory = await context.MongoDB(context).collection('sales').find({ customerId: id })
                     .sort({ createdAt: -1 })
                     .toArray();
 
-                // 3. Calcula os totais e métricas
+                
                 let totalSpent = 0;
                 salesHistory.forEach(sale => {
                     totalSpent += sale.finalAmount || 0;
                 });
 
-                // 4. Monta o objeto final para retornar
+                
                 return {
                     customer: customer,
                     totalSpent: totalSpent,
@@ -78,18 +78,18 @@ module.exports = {
                 throw new Error("Tipo de filtro de marketing inválido.");
             }
 
-            // Adiciona o $lookup para buscar os detalhes completos dos clientes
+            
             pipeline.push(
                 {
                     $lookup: {
-                        from: "customers", // O nome da sua collection de clientes
+                        from: "customers", 
                         localField: "_id",
                         foreignField: "_id",
                         as: "customerInfo"
                     }
                 },
                 { $unwind: "$customerInfo" },
-                { $replaceRoot: { newRoot: "$customerInfo" } } // Substitui a raiz pelo documento do cliente
+                { $replaceRoot: { newRoot: "$customerInfo" } } 
             );
 
             try {

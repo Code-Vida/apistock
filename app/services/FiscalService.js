@@ -1,10 +1,8 @@
 const axios = require('axios');
 
-// URL base para o ambiente de testes da FocusNFe
+
 const FOCUS_NFE_BASE_URL = 'https://homologacao.focusnfe.com.br';
 
-// IMPORTANTE: Guarde seu token de forma segura, como uma variável de ambiente (.env)
-// Nunca deixe o token diretamente no código em produção.
 // eslint-disable-next-line no-undef
 const API_TOKEN = process.env.FOCUS_NFE_TOKEN_HOMOLOGACAO || 'SEU_TOKEN_DE_TESTES_AQUI';
 
@@ -27,36 +25,36 @@ class FiscalService {
         try {
             console.log(`[FiscalService] Iniciando emissão para venda: ${saleId}`);
 
-            // 1. Atualiza o status da venda no banco para 'processando'
+            
             await MongoDB(context).collection('sales').updateOne(
                 { _id: saleId },
                 { $set: { nfceStatus: 'processando' } }
             );
 
-            // 2. Mapeia os dados da venda para o formato JSON esperado pela FocusNFe
+            
             const nfeJson = this._mapSaleToNFCeJson(saleDocument, storeConfig);
 
-            // A 'ref' é um ID único que usamos para consultar a nota depois. O ID da venda é perfeito para isso.
+            
             const url = `${FOCUS_NFE_BASE_URL}/v2/nfce?ref=${saleId}`;
 
-            // 3. Envia a requisição para a API da FocusNFe
+            
             const response = await axios.post(url, nfeJson, {
-                auth: { username: API_TOKEN } // Autenticação Basic Auth
+                auth: { username: API_TOKEN } 
             });
 
-            // 4. Se a requisição foi aceita (status 202), a nota está na fila de processamento.
+            
             if (response.status === 202) {
                 console.log(`[FiscalService] Venda ${saleId} enviada com sucesso. Status: ${response.data.status}. Agendando consulta.`);
 
-                // 5. Agenda a consulta do status para alguns segundos no futuro.
-                // Para produção, um sistema de filas (como BullMQ/Redis) é mais robusto.
-                setTimeout(() => this.consultarStatusNFCe(saleId, context), 8000); // Consulta após 8s
+                
+                
+                setTimeout(() => this.consultarStatusNFCe(saleId, context), 8000); 
             } else {
                 throw new Error(`Resposta inesperada da API: ${response.status} - ${response.data}`);
             }
 
         } catch (error) {
-            // Se qualquer parte do envio falhar, registramos o erro no banco.
+            
             const errorMessage = error.response?.data?.mensagem || error.message;
             console.error(`[FiscalService] Falha CRÍTICA ao emitir NFC-e para venda ${saleId}:`, errorMessage);
 
@@ -86,7 +84,7 @@ class FiscalService {
             const data = response.data;
             let updatePayload = {};
 
-            // Analisa a resposta e prepara a atualização para o banco
+            
             switch (data.status) {
                 case 'autorizada':
                     updatePayload = {
@@ -104,10 +102,10 @@ class FiscalService {
                     console.warn(`[FiscalService] Venda ${saleId} REJEITADA: ${data.motivo_rejeicao}`);
                     break;
                 case 'processando':
-                    // A nota ainda está na fila, podemos agendar uma nova consulta
+                    
                     console.log(`[FiscalService] Venda ${saleId} ainda em processamento. Tentando novamente em 10s.`);
                     setTimeout(() => this.consultarStatusNFCe(saleId, context), 10000);
-                    return; // Sai da função para não fazer o update no banco agora
+                    return; 
                 default:
                     throw new Error(`Status não esperado: ${data.status}`);
             }
@@ -132,6 +130,7 @@ class FiscalService {
      * Mapeia um documento de Venda e Configuração da Loja para o formato JSON da NFC-e.
      * @private
      */
+    // eslint-disable-next-line no-unused-vars
     static _mapSaleToNFCeJson(saleDocument, storeConfig) {
         return {
             "cnpj_emitente": "46391493000139",
@@ -170,43 +169,43 @@ class FiscalService {
                 }
             ]
         }
-        return {
-            'natureza_operacao': 'Venda de mercadoria',
-            'data_emissao': saleDocument.createdAt.toISOString(),
-            'tipo_documento': '1',
-            'finalidade_emissao': '1',
-            'cnpj_emitente': storeConfig.cnpj.replace(/\D/g, ''), // Remove caracteres não numéricos
-            'inscricao_estadual_emitente': storeConfig.inscricaoEstadual.replace(/\D/g, ''),
-            'regime_tributario_emitente': '1', // 1 = Simples Nacional
-            'nome_emitente': storeConfig.razaoSocial,
-            'logradouro_emitente': storeConfig.endereço.logradouro,
-            'numero_emitente': storeConfig.endereço.numero,
-            'bairro_emitente': storeConfig.endereço.bairro,
-            'municipio_emitente': storeConfig.endereço.municipio,
-            'uf_emitente': storeConfig.endereço.uf,
-            'cep_emitente': storeConfig.endereço.cep.replace(/\D/g, ''),
-            'items': saleDocument.items.map((item, index) => ({
-                'numero_item': index + 1,
-                'codigo_produto': item.productId,
-                'descricao': `${item.brand} ${item.model}`,
-                'ncm': item.ncm,
-                'cfop': '5102', // Venda de mercadoria adquirida ou recebida de terceiros
-                'unidade_comercial': 'UN',
-                'quantidade_comercial': item.quantity,
-                'valor_unitario_comercial': item.priceAtTimeOfSale,
-                'unidade_tributavel': 'UN',
-                'quantidade_tributavel': item.quantity,
-                'valor_unitario_tributavel': item.priceAtTimeOfSale,
-                'icms_origem': item.origem.toString(),
-                'icms_situacao_tributaria': '102', // CSOSN para Simples Nacional
-            })),
-            'formas_pagamento': [{
-                // Ver documentação da FocusNFe para todos os códigos
-                // 01=Dinheiro, 03=Cartão de Crédito, 04=Cartão de Débito
-                'forma_pagamento': '01',
-                'valor_pagamento': saleDocument.finalAmount,
-            }],
-        };
+        // return {
+        //     'natureza_operacao': 'Venda de mercadoria',
+        //     'data_emissao': saleDocument.createdAt.toISOString(),
+        //     'tipo_documento': '1',
+        //     'finalidade_emissao': '1',
+        //     'cnpj_emitente': storeConfig.cnpj.replace(/\D/g, ''), 
+        //     'inscricao_estadual_emitente': storeConfig.inscricaoEstadual.replace(/\D/g, ''),
+        //     'regime_tributario_emitente': '1', 
+        //     'nome_emitente': storeConfig.razaoSocial,
+        //     'logradouro_emitente': storeConfig.endereço.logradouro,
+        //     'numero_emitente': storeConfig.endereço.numero,
+        //     'bairro_emitente': storeConfig.endereço.bairro,
+        //     'municipio_emitente': storeConfig.endereço.municipio,
+        //     'uf_emitente': storeConfig.endereço.uf,
+        //     'cep_emitente': storeConfig.endereço.cep.replace(/\D/g, ''),
+        //     'items': saleDocument.items.map((item, index) => ({
+        //         'numero_item': index + 1,
+        //         'codigo_produto': item.productId,
+        //         'descricao': `${item.brand} ${item.model}`,
+        //         'ncm': item.ncm,
+        //         'cfop': '5102', 
+        //         'unidade_comercial': 'UN',
+        //         'quantidade_comercial': item.quantity,
+        //         'valor_unitario_comercial': item.priceAtTimeOfSale,
+        //         'unidade_tributavel': 'UN',
+        //         'quantidade_tributavel': item.quantity,
+        //         'valor_unitario_tributavel': item.priceAtTimeOfSale,
+        //         'icms_origem': item.origem.toString(),
+        //         'icms_situacao_tributaria': '102', 
+        //     })),
+        //     'formas_pagamento': [{
+                
+                
+        //         'forma_pagamento': '01',
+        //         'valor_pagamento': saleDocument.finalAmount,
+        //     }],
+        // };
     }
 }
 
