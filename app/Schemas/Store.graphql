@@ -1,5 +1,20 @@
 type Store {
   _id: ID!
   name: String!
-  monthlySalesGoal: Float # Meta de vendas do mês
+  monthlySalesGoal: Float 
+  createdAt: Date 
+  hasFiscalModule: Boolean
+  cnpj: String
+  inscricaoEstadual: String
+  adress: StoreAdress
+  corporateName: String 
+}
+
+type StoreAdress {
+  street: String
+  number: Int
+  neighborhood: String
+  city: String
+  state: String
+  zipCode: String
 }

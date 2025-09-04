@@ -4,6 +4,10 @@ input SaleItemInput {
   quantity: Int!
   priceAtTimeOfSale: Float!
   costAtTimeOfSale: Float
+  brand: String
+  model: String
+  ncm: String
+  origem: String
 }
 
 # Input principal para a mutação de criar a venda
