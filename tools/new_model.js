@@ -14,7 +14,7 @@ function getHexColors(colorString) {
   const slug = colorString.trim().toLowerCase().replace(/\s+/g, "_");
 
   const colorMap = {
-    // Cores Simples
+    
     amarelo: { hex1: "#FFFF00", hex2: null },
     amendoa: { hex1: "#FFEBCD", hex2: null },
     ametista: { hex1: "#9966CC", hex2: null },
@@ -146,8 +146,8 @@ function getHexColors(colorString) {
     vinho: { hex1: "#800000", hex2: null },
     violeta: { hex1: "#EE82EE", hex2: null },
 
-    // Cores Combinadas (hex1: cor1, hex2: cor2)
-    aranha_preto: { hex1: "#000000", hex2: null }, // "Aranha" não tem cor, mas "Preto" sim.
+    
+    aranha_preto: { hex1: "#000000", hex2: null }, 
     aurora_b: { hex1: "#6BE5BF", hex2: null },
     azul_a: { hex1: "#0000FF", hex2: null },
     azul_amarelo: { hex1: "#0000FF", hex2: "#FFFF00" },
@@ -155,8 +155,8 @@ function getHexColors(colorString) {
     azul_branco: { hex1: "#0000FF", hex2: "#FFFFFF" },
     azul_cinza: { hex1: "#0000FF", hex2: "#808080" },
     azul_claro: { hex1: "#ADD8E6", hex2: null },
-    azul_claro_mickey: { hex1: "#ADD8E6", hex2: null }, // Ignorando "Mickey"
-    azul_dalmata: { hex1: "#0000FF", hex2: null }, // Ignorando "Dalmata"
+    azul_claro_mickey: { hex1: "#ADD8E6", hex2: null }, 
+    azul_dalmata: { hex1: "#0000FF", hex2: null }, 
     azul_escuro: { hex1: "#00008B", hex2: null },
     azul_g: { hex1: "#0000FF", hex2: null },
     azul_l: { hex1: "#0000FF", hex2: null },
@@ -164,7 +164,7 @@ function getHexColors(colorString) {
     azul_lilas: { hex1: "#0000FF", hex2: "#C8A2C8" },
     azul_medio: { hex1: "#4169E1", hex2: null },
     azul_prata: { hex1: "#0000FF", hex2: "#C0C0C0" },
-    azul_rebook: { hex1: "#0000FF", hex2: null }, // Ignorando "Rebook"
+    azul_rebook: { hex1: "#0000FF", hex2: null }, 
     azul_rosa: { hex1: "#0000FF", hex2: "#FFC0CB" },
     azul_verde: { hex1: "#0000FF", hex2: "#008000" },
     azul_vermelho: { hex1: "#0000FF", hex2: "#FF0000" },
@@ -209,11 +209,11 @@ function getHexColors(colorString) {
     branco_r: { hex1: "#FFFFFF", hex2: null },
     branco_rosa: { hex1: "#FFFFFF", hex2: "#FFC0CB" },
     branco_rose: { hex1: "#FFFFFF", hex2: "#F88379" },
-    cachorrinha: { hex1: "#8B4513", hex2: null }, // Cor de cachorro (marrom)
-    capitao_america: { hex1: "#0000FF", hex2: null }, // Cor principal
+    cachorrinha: { hex1: "#8B4513", hex2: null }, 
+    capitao_america: { hex1: "#0000FF", hex2: null }, 
     capitao_azul: { hex1: "#0000FF", hex2: null },
     capitao_royal: { hex1: "#4169E1", hex2: null },
-    carro: { hex1: "#C0C0C0", hex2: null }, // Cor genérica de carro (prata)
+    carro: { hex1: "#C0C0C0", hex2: null }, 
     chumbo_rosa: { hex1: "#6B7569", hex2: "#FFC0CB" },
     cinza_pink: { hex1: "#808080", hex2: "#FFC0CB" },
     cinza_azul: { hex1: "#808080", hex2: "#0000FF" },
@@ -235,7 +235,7 @@ function getHexColors(colorString) {
     g_preto: { hex1: "#000000", hex2: null },
     g_rosa: { hex1: "#FFC0CB", hex2: null },
     g_rose: { hex1: "#F88379", hex2: null },
-    gatinha: { hex1: "#FFC0CB", hex2: null }, // Cor genérica de "Gatinha" (rosa)
+    gatinha: { hex1: "#FFC0CB", hex2: null }, 
     glitter_branco: { hex1: "#C0C0C0", hex2: "#FFFFFF" },
     glitter_nude: { hex1: "#C0C0C0", hex2: "#E3BC9A" },
     grafite_l: { hex1: "#36454F", hex2: null },
@@ -247,12 +247,12 @@ function getHexColors(colorString) {
     grafite_salmao: { hex1: "#36454F", hex2: "#FA8072" },
     grafite_verde: { hex1: "#36454F", hex2: "#008000" },
     grafite_vermelho: { hex1: "#36454F", hex2: "#FF0000" },
-    homem_aranha: { hex1: "#0000FF", hex2: null }, // Cor principal (azul)
+    homem_aranha: { hex1: "#0000FF", hex2: null }, 
     homem_aranha_preto: { hex1: "#0000FF", hex2: "#000000" },
-    homem_de_ferro: { hex1: "#FF0000", hex2: null }, // Cor principal (vermelho)
+    homem_de_ferro: { hex1: "#FF0000", hex2: null }, 
     homem_de_ferro_preto: { hex1: "#FF0000", hex2: "#000000" },
     homem_ferro_preto: { hex1: "#FF0000", hex2: "#000000" },
-    justica: { hex1: "#808080", hex2: null }, // Cor genérica (cinza)
+    justica: { hex1: "#808080", hex2: null }, 
     l_branco: { hex1: "#FFFFFF", hex2: null },
     l_branco_b: { hex1: "#FFFFFF", hex2: "#000000" },
     lilas_rosa: { hex1: "#C8A2C8", hex2: "#FFC0CB" },
@@ -265,9 +265,9 @@ function getHexColors(colorString) {
     lilo_rosa: { hex1: "#FFC0CB", hex2: null },
     lilo_pink: { hex1: "#FFC0CB", hex2: null },
     lilo_royal: { hex1: "#4169E1", hex2: null },
-    lol: { hex1: "#FFC0CB", hex2: null }, // Cor genérica (rosa)
+    lol: { hex1: "#FFC0CB", hex2: null }, 
     lol_preto: { hex1: "#FFC0CB", hex2: "#000000" },
-    mario: { hex1: "#FF0000", hex2: null }, // Cor principal (vermelho)
+    mario: { hex1: "#FF0000", hex2: null }, 
     mario_royal: { hex1: "#FF0000", hex2: "#4169E1" },
     marinhi: { hex1: "#000080", hex2: null },
     marinho_v: { hex1: "#000080", hex2: null },
@@ -287,14 +287,14 @@ function getHexColors(colorString) {
     marrom_m: { hex1: "#A52A2A", hex2: null },
     marrom_marrom: { hex1: "#A52A2A", hex2: "#A52A2A" },
     marrom_verde: { hex1: "#A52A2A", hex2: "#008000" },
-    mickey: { hex1: "#FF0000", hex2: null }, // Cor principal (vermelho)
+    mickey: { hex1: "#FF0000", hex2: null }, 
     mickey_preto: { hex1: "#FF0000", hex2: "#000000" },
-    minnie: { hex1: "#FF0000", hex2: null }, // Cor principal (vermelho)
+    minnie: { hex1: "#FF0000", hex2: null }, 
     minnie_rosa: { hex1: "#FF0000", hex2: "#FFC0CB" },
     minnie_pink: { hex1: "#FF0000", hex2: "#FFC0CB" },
     minnie_preto: { hex1: "#FF0000", hex2: "#000000" },
     minnie_vermelho: { hex1: "#FF0000", hex2: "#FF0000" },
-    mulher_maravilha: { hex1: "#FF0000", hex2: null }, // Cor principal (vermelho)
+    mulher_maravilha: { hex1: "#FF0000", hex2: null }, 
     multi_bege: { hex1: "#F5F5DC", hex2: null },
     multi_camel: { hex1: "#C19A6B", hex2: null },
     multi_nude: { hex1: "#E3BC9A", hex2: null },
@@ -322,7 +322,7 @@ function getHexColors(colorString) {
     ouro_rosado: { hex1: "#B76E79", hex2: null },
     patrulha_laranja: { hex1: "#FFA500", hex2: null },
     patrulha_azul: { hex1: "#0000FF", hex2: null },
-    patrulha_canina: { hex1: "#FFA500", hex2: null }, // Cor genérica (laranja)
+    patrulha_canina: { hex1: "#FFA500", hex2: null }, 
     patrulha_pink: { hex1: "#FFC0CB", hex2: null },
     patrulha_preto: { hex1: "#000000", hex2: null },
     patrulha_rosa: { hex1: "#FFC0CB", hex2: null },
@@ -372,7 +372,7 @@ function getHexColors(colorString) {
     preto_verniz: { hex1: "#000000", hex2: null },
     preto_vidro: { hex1: "#000000", hex2: null },
     pretp: { hex1: "#000000", hex2: null },
-    princesa_azul: { hex1: "#ADD8E6", hex2: null }, // Azul claro de princesa
+    princesa_azul: { hex1: "#ADD8E6", hex2: null }, 
     pto_azul: { hex1: "#000000", hex2: "#0000FF" },
     pto_bco: { hex1: "#000000", hex2: "#FFFFFF" },
     pto_castor: { hex1: "#000000", hex2: "#BEABA0" },
@@ -431,7 +431,7 @@ function getHexColors(colorString) {
     s_branco_b: { hex1: "#FFFFFF", hex2: "#000000" },
     s_rosa: { hex1: "#FFC0CB", hex2: null },
     sereia_lilas: { hex1: "#40E0D0", hex2: "#C8A2C8" },
-    stitch: { hex1: "#ADD8E6", hex2: null }, // Azul claro do Stitch
+    stitch: { hex1: "#ADD8E6", hex2: null }, 
     stitch_preto: { hex1: "#ADD8E6", hex2: "#000000" },
     stitch_preto_rosa: { hex1: "#ADD8E6", hex2: "#000000" },
     t_dourado: { hex1: "#FFD700", hex2: null },
@@ -521,7 +521,7 @@ async function transformProducts() {
       group.variants.push(variant);
     }
 
-    // Cálculo do estoque disponível
+    
     const originalAmount = p.amount ?? 0;
     const sales = p.sales ?? 0;
     const available = Math.max(originalAmount - sales, 0);
@@ -531,7 +531,7 @@ async function transformProducts() {
       amount: available,
       barCode: p.barCode,
       purchaseDate: p.purchaseDate,
-      // 🔥 Removido: sales
+      
     });
   });
 

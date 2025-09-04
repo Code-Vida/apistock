@@ -1,12 +1,12 @@
 
-const { startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } = require('date-fns'); // Ótima lib para manipular datas
+const { startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } = require('date-fns'); 
 
 module.exports = {
     Query: {
         getSales: async (_, { startDate, endDate, limit = 20, offset = 0 }, context) => {
             const filter = {};
 
-            // Lógica para filtro de data (continua a mesma)
+            
             if (startDate && endDate) {
                 filter.createdAt = {
                     $gte: startOfDay(parseISO(startDate)),
@@ -19,31 +19,31 @@ module.exports = {
             }
 
             try {
-                // Pipeline de agregação para buscar vendas e enriquecer com dados do produto
+                
                 const pipeline = [
-                    // 1. Aplica os filtros de data e paginação primeiro para otimizar
+                    
                     { $match: filter },
                     { $sort: { createdAt: -1 } },
                     { $skip: offset },
                     { $limit: limit },
 
-                    // 2. Desconstrói o array de itens para processar cada um
+                    
                     { $unwind: "$items" },
 
-                    // 3. Faz o "JOIN" com a collection de produtos para buscar os detalhes
+                    
                     {
                         $lookup: {
-                            from: "products_new", // O nome exato da sua collection de produtos
+                            from: "products_new", 
                             localField: "items.productId",
                             foreignField: "_id",
-                            as: "items.productInfo" // Armazena o resultado em um novo campo temporário
+                            as: "items.productInfo" 
                         }
                     },
 
-                    // 4. O lookup retorna um array, então o desconstruímos para ter um objeto
+                    
                     { $unwind: "$items.productInfo" },
 
-                    // 5. Reagrupa os itens de volta em suas respectivas vendas
+                    
                     {
                         $group: {
                             _id: "$_id",
@@ -53,9 +53,9 @@ module.exports = {
                             finalAmount: { $first: "$finalAmount" },
                             paymentMethod: { $first: "$paymentMethod" },
                             items: {
-                                $push: { // Adiciona cada item modificado de volta ao array 'items'
+                                $push: { 
                                     productId: "$items.productId",
-                                    product: "$items.productInfo", // Anexa o documento completo do produto
+                                    product: "$items.productInfo", 
                                     variants: "$items.variants",
                                     quantity: "$items.quantity",
                                     priceAtTimeOfSale: "$items.priceAtTimeOfSale",
@@ -64,7 +64,7 @@ module.exports = {
                             }
                         }
                     },
-                    // 6. Reordena o resultado final, pois o $group pode alterar a ordem
+                    
                     { $sort: { createdAt: -1 } }
                 ];
 
@@ -80,11 +80,11 @@ module.exports = {
 
         topSellingProducts: async (_, { startDate, endDate, sortBy = "QUANTITY", limit = 10 }, context) => {
             try {
-                // Define o campo pelo qual vamos ordenar
+                
                 const sortField = sortBy === "REVENUE" ? "totalRevenue" : "totalQuantitySold";
 
                 const pipeline = [
-                    // 1. Filtra as vendas pelo período de data desejado
+                    
                     {
                         $match: {
                             createdAt: {
@@ -93,35 +93,35 @@ module.exports = {
                             },
                         },
                     },
-                    // 2. Desconstrói o array de itens para processar cada item individualmente
+                    
                     { $unwind: "$items" },
-                    // 3. Agrupa por ID do produto, somando a quantidade e a receita
+                    
                     {
                         $group: {
-                            _id: "$items.productId", // Agrupa pelo ID do produto
+                            _id: "$items.productId", 
                             totalQuantitySold: { $sum: "$items.quantity" },
                             totalRevenue: { $sum: { $multiply: ["$items.priceAtTimeOfSale", "$items.quantity"] } },
                         },
                     },
-                    // 4. Ordena os resultados com base no critério escolhido (os maiores primeiro)
+                    
                     { $sort: { [sortField]: -1 } },
-                    // 5. Limita ao top N (ex: top 10)
+                    
                     { $limit: limit },
-                    // 6. Junta ("JOIN") com a collection de produtos para buscar brand e model
+                    
                     {
                         $lookup: {
-                            from: "products", // O nome exato da sua collection de produtos
+                            from: "products", 
                             localField: "_id",
                             foreignField: "_id",
                             as: "productInfo",
                         },
                     },
-                    // 7. Desconstrói o array resultante do lookup
+                    
                     { $unwind: "$productInfo" },
-                    // 8. Formata o documento final para corresponder ao tipo GraphQL
+                    
                     {
                         $project: {
-                            _id: 0, // Exclui o _id do grupo
+                            _id: 0, 
                             productId: "$_id",
                             brand: "$productInfo.brand",
                             model: "$productInfo.model",
@@ -145,7 +145,7 @@ module.exports = {
                 const start = startOfDay(parseISO(startDate));
                 const end = endOfDay(parseISO(endDate));
 
-                // --- AGREGAÇÃO 1: CALCULAR O RESUMO GERAL ---
+                
                 const summaryPipeline = [
                     { $match: { createdAt: { $gte: start, $lte: end } } },
                     { $unwind: "$items" },
@@ -158,7 +158,7 @@ module.exports = {
                     }
                 ];
 
-                // --- AGREGAÇÃO 2: CALCULAR O RANKING DE PRODUTOS MAIS LUCRATIVOS ---
+                
                 const topProductsPipeline = [
                     { $match: { createdAt: { $gte: start, $lte: end } } },
                     { $unwind: "$items" },
@@ -170,7 +170,7 @@ module.exports = {
                         }
                     },
                     { $sort: { totalProfit: -1 } },
-                    { $limit: 15 }, // Pega os 15 mais lucrativos
+                    { $limit: 15 }, 
                     { $lookup: { from: "products", localField: "_id", foreignField: "_id", as: "productInfo" } },
                     { $unwind: "$productInfo" },
                     {
@@ -185,13 +185,13 @@ module.exports = {
                     }
                 ];
 
-                // Executa as duas agregações em paralelo
+                
                 const [summaryResult, topProductsResult] = await Promise.all([
                     context.MongoDB(context).collection('sales').aggregate(summaryPipeline).toArray(),
                     context.MongoDB(context).collection('sales').aggregate(topProductsPipeline).toArray()
                 ]);
 
-                // --- COMBINA OS RESULTADOS ---
+                
                 let summary = { totalRevenue: 0, totalCost: 0, totalProfit: 0, profitMargin: 0 };
                 if (summaryResult.length > 0) {
                     const { totalRevenue, totalCost } = summaryResult[0];
@@ -218,30 +218,30 @@ module.exports = {
                 const endDate = endOfDay(targetDate);
 
                 const pipeline = [
-                    // 1. Encontra todas as vendas no intervalo de datas (o dia inteiro)
+                    
                     {
                         $match: {
                             createdAt: { $gte: startDate, $lte: endDate }
                         }
                     },
-                    // 2. Agrupa os documentos pelo campo 'paymentMethod'
+                    
                     {
                         $group: {
-                            _id: "$paymentMethod", // Agrupa por forma de pagamento
-                            totalAmount: { $sum: "$finalAmount" }, // Soma o valor final de cada venda no grupo
-                            salesCount: { $sum: 1 } // Conta quantas vendas existem em cada grupo
+                            _id: "$paymentMethod", 
+                            totalAmount: { $sum: "$finalAmount" }, 
+                            salesCount: { $sum: 1 } 
                         }
                     },
-                    // 3. Ordena por nome do método de pagamento para um resultado consistente
+                    
                     {
                         $sort: { _id: 1 }
                     },
-                    // 4. Formata o documento de saída para corresponder ao nosso tipo GraphQL
+                    
                     {
                         $project: {
-                            _id: 0, // Remove o campo _id
-                            paymentMethod: "$_id", // Renomeia _id para paymentMethod
-                            totalAmount: 1, // Mantém os campos calculados
+                            _id: 0, 
+                            paymentMethod: "$_id", 
+                            totalAmount: 1, 
                             salesCount: 1
                         }
                     }
@@ -259,11 +259,11 @@ module.exports = {
         getInventoryReport: async (_, __, context) => {
             try {
                 const pipeline = [
-                    // 1. Desconstrói as variantes e depois os itens para ter um documento por SKU
+                    
                     { $unwind: "$variants" },
                     { $unwind: "$variants.items" },
 
-                    // 2. Agrupa por produto para calcular os totais de cada produto
+                    
                     {
                         $group: {
                             _id: "$_id",
@@ -275,14 +275,14 @@ module.exports = {
                         }
                     },
 
-                    // 3. Agrupa novamente para calcular os totais gerais e criar o array de produtos
+                    
                     {
                         $group: {
-                            _id: null, // Agrupa todos os documentos de produto em um só
+                            _id: null, 
                             grandTotalCostValue: { $sum: "$totalCostValue" },
                             grandTotalSaleValue: { $sum: "$totalSaleValue" },
                             grandTotalItemCount: { $sum: "$totalQuantity" },
-                            // Cria o array de produtos com os dados que já agrupamos
+                            
                             products: {
                                 $push: {
                                     id: "$_id",
@@ -296,7 +296,7 @@ module.exports = {
                         }
                     },
 
-                    // 4. Formata o documento final para corresponder ao nosso tipo GraphQL
+                    
                     {
                         $project: {
                             _id: 0,
@@ -305,14 +305,14 @@ module.exports = {
                                 totalSaleValue: "$grandTotalSaleValue",
                                 totalItemCount: "$grandTotalItemCount"
                             },
-                            products: 1 // Mantém o array de produtos
+                            products: 1 
                         }
                     }
                 ];
 
                 const result = await context.MongoDB(context).collection('products_new').aggregate(pipeline).toArray();
 
-                // Se não houver produtos, retorna um relatório vazio
+                
                 if (result.length === 0) {
                     return {
                         summary: { totalCostValue: 0, totalSaleValue: 0, totalItemCount: 0 },
@@ -341,14 +341,14 @@ module.exports = {
             const startDate = startOfMonth(targetDate);
             const endDate = endOfMonth(targetDate);
 
-            // Busca os dados do usuário alvo
+            
             const targetUser = await MongoDB(context).collection('users').findOne({ _id: targetUserId });
             if (!targetUser) throw new Error("Usuário do relatório não encontrado.");
 
             const commissionRate = targetUser.commissionRate || 0;
             const userGoal = targetUser.monthlyGoal || 0;
 
-            // Calcula as vendas do usuário
+            
             const userSalesPipeline = [
                 { $match: { userId: targetUserId, createdAt: { $gte: startDate, $lte: endDate } } },
                 { $group: { _id: null, totalSold: { $sum: "$finalAmount" }, salesCount: { $sum: 1 } } }
@@ -356,23 +356,23 @@ module.exports = {
             const userResult = await MongoDB(context).collection('sales').aggregate(userSalesPipeline).toArray();
             const totalSoldByUser = userResult[0]?.totalSold || 0;
 
-            // Calcula o progresso e os bônus
+            
             const userGoalProgress = userGoal > 0 ? (totalSoldByUser / userGoal) * 100 : 0;
             let bonusPercentage = 0;
             if (userGoalProgress >= 110) {
-                bonusPercentage = 1.10; // Super Bônus
+                bonusPercentage = 1.10; 
             } else if (userGoalProgress >= 105) {
-                bonusPercentage = 1.05; // Bônus
+                bonusPercentage = 1.05; 
             } else if (userGoalProgress >= 100) {
-                bonusPercentage = 1.0;  // Meta 100%
+                bonusPercentage = 1.0;  
             }
 
-            // Lógica de cálculo de comissão e bônus
+            
             const commissionEarned = (totalSoldByUser * commissionRate) / 100;
             const bonusEarned = bonusPercentage > 0 ? (commissionEarned * bonusPercentage) - commissionEarned : 0;
             const totalCommission = commissionEarned + bonusEarned;
 
-            // Busca dados da loja (já implementado antes)
+            
             const store = await MongoDB(context).collection('stores').findOne({ _id: user.storeId });
             const storeSalesPipeline = [ /* ... */];
             const storeResult = await MongoDB(context).collection('sales').aggregate(storeSalesPipeline).toArray();

@@ -1,5 +1,3 @@
-// app/utils/auth.js
-
 const { GraphQLError } = require('graphql');
 
 /**

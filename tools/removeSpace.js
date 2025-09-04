@@ -1,6 +1,7 @@
 const { MongoClient } = require("mongodb");
 
 async function updateDatabase() {
+  // eslint-disable-next-line no-undef
   const uri = process.env.MONGO_URI;
   const client = new MongoClient(uri, {
     useNewUrlParser: true,
@@ -12,10 +13,10 @@ async function updateDatabase() {
     const database = client.db("apistock");
     const collection = database.collection("products");
 
-    // Buscar todos os documentos
+    
     const documents = await collection.find({}).toArray();
 
-    // Verificar e atualizar os documentos
+    
     for (const doc of documents) {
       const updatedFields = {};
       let needsUpdate = false;

@@ -1,6 +1,7 @@
+/* eslint-disable no-undef */
 const { MongoClient } = require("mongodb");
 
-// --- CONFIGURAÇÃO ---
+
 const MONGO_URI = process.env.MONGO_URI;
 const DB_NAME = process.env.MONGO_DATABASE;
 
@@ -44,7 +45,7 @@ const mongoInstance = new MongoService();
 function MongoDB(context) {
   const database = mongoInstance.getDb();
 
-  // Extrai o storeId do usuário logado, se existir.
+
   const storeId = context?.user?.storeId;
 
   return {
@@ -52,21 +53,21 @@ function MongoDB(context) {
       const collection = database.collection(name);
       const defaultCollation = { locale: 'pt', strength: 2 };
 
-      // Define quais collections são públicas e não precisam de storeId
+
       const publicCollections = ['users', 'stores'];
       const isProtectedCollection = !publicCollections.includes(name);
 
-      // MUDANÇA: Trava de segurança.
-      // Se a collection é protegida, mas não há um storeId no contexto, lança um erro.
+
+
       if (isProtectedCollection && !storeId) {
         throw new Error(`Acesso não autorizado à collection '${name}'. É necessário estar autenticado com uma loja válida.`);
       }
 
-      // Define se o filtro de storeId deve ser aplicado
+
       const applyStoreIdFilter = isProtectedCollection && storeId;
 
       return {
-        // --- MÉTODOS DE LEITURA ---
+
         find: (filter = {}, options = {}) => {
           const secureFilter = applyStoreIdFilter ? { ...filter, storeId } : filter;
           return collection.find(secureFilter, { ...options, collation: defaultCollation });
@@ -87,7 +88,7 @@ function MongoDB(context) {
           return collection.aggregate(securePipeline, { ...options, collation: defaultCollation });
         },
 
-        // --- MÉTODOS DE ESCRITA ---
+
         insertOne: (doc, options) => {
           const secureDoc = applyStoreIdFilter ? { ...doc, storeId } : doc;
           return collection.insertOne(secureDoc, options);

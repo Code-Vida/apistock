@@ -5,7 +5,7 @@ module.exports = {
     Query: {
         getActiveCashSession: async (_, __, context) => {
             try {
-                // Acessa a função MongoDB através do contexto
+                
                 const activeSession = await context.MongoDB(context).collection('cash').findOne({ status: 'OPEN' });
                 return activeSession;
             } catch (error) {
@@ -15,17 +15,17 @@ module.exports = {
         },
         getActiveCashSessionSummary: async (_, __, context) => {
             try {
-                // 1. Encontra a sessão de caixa ativa
+                
                 const activeSession = await context.MongoDB(context).collection('cash').findOne({ status: 'OPEN' });
                 if (!activeSession) {
-                    // Se não houver caixa aberto, não é um erro, apenas retorna nulo.
+                    
                     return null;
                 }
 
                 const startDate = activeSession.openedAt;
-                const endDate = new Date(); // Até o momento atual
+                const endDate = new Date(); 
 
-                // 2. Agrega as vendas por forma de pagamento
+                
                 const salesSummaryPipeline = [
                     { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
                     { $group: { _id: "$paymentMethod", total: { $sum: "$finalAmount" }, salesCount: { $sum: 1 } } },
@@ -33,7 +33,7 @@ module.exports = {
                 ];
                 const totalSalesByPaymentMethod = await context.MongoDB(context).collection('sales').aggregate(salesSummaryPipeline).toArray();
 
-                // 3. Agrega os movimentos de caixa (entradas/saídas)
+                
                 const movementsSummaryPipeline = [
                     { $match: { sessionId: activeSession._id, createdAt: { $gte: startDate, $lte: endDate } } },
                     { $group: { _id: "$type", total: { $sum: "$amount" } } }
@@ -44,10 +44,10 @@ module.exports = {
                 const totalWithdrawals = movementsResult.find(m => m._id === 'WITHDRAWAL')?.total || 0;
                 const salesInCash = totalSalesByPaymentMethod.find(p => p.paymentMethod === 'Dinheiro')?.totalAmount || 0;
 
-                // 4. Calcula o saldo esperado em dinheiro
+                
                 const expectedBalanceInCash = activeSession.openingBalance + salesInCash + totalDeposits - totalWithdrawals;
 
-                // 5. Retorna o objeto completo do resumo
+                
                 return {
                     openingBalance: activeSession.openingBalance,
                     totalSalesByPaymentMethod: totalSalesByPaymentMethod,
@@ -99,7 +99,7 @@ module.exports = {
         },
 
         addCashMovement: async (_, { input }, context) => {
-            // Acessa o client diretamente do contexto para usar transações
+            
             const client = context.client;
             const session = client.startSession();
 
@@ -143,20 +143,20 @@ module.exports = {
             const session = client.startSession();
 
             try {
-                let closedSessionDocument; // Variável para armazenar o resultado final
+                let closedSessionDocument; 
 
-                // O método withTransaction gerencia o início, commit e abort da transação automaticamente.
+                
                 await session.withTransaction(async () => {
-                    // --- 1. Encontrar a Sessão Ativa ---
+                    
                     const activeSession = await context.MongoDB(context).collection('cash').findOne({ status: 'OPEN' }, { session });
                     if (!activeSession) {
                         throw new Error("Nenhuma sessão de caixa está aberta para ser fechada.");
                     }
 
                     const startDate = activeSession.openedAt;
-                    const endDate = new Date(); // O momento exato do fechamento
+                    const endDate = new Date(); 
 
-                    // --- 2. Calcular Totais de Vendas por Forma de Pagamento ---
+                    
                     const salesSummaryPipeline = [
                         { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
                         { $group: { _id: "$paymentMethod", total: { $sum: "$finalAmount" } } },
@@ -164,7 +164,7 @@ module.exports = {
                     ];
                     const totalSalesByPaymentMethod = await context.MongoDB(context).collection('sales').aggregate(salesSummaryPipeline, { session }).toArray();
 
-                    // --- 3. Calcular Totais de Movimentos de Caixa (Sangrias/Suprimentos) ---
+                    
                     const movementsSummaryPipeline = [
                         { $match: { sessionId: activeSession._id, createdAt: { $gte: startDate, $lte: endDate } } },
                         { $group: { _id: "$type", total: { $sum: "$amount" } } }
@@ -175,13 +175,13 @@ module.exports = {
                     const totalWithdrawals = movementsResult.find(m => m._id === 'WITHDRAWAL')?.total || 0;
                     const salesInCash = totalSalesByPaymentMethod.find(p => p.paymentMethod === 'Dinheiro')?.total || 0;
 
-                    // --- 4. Calcular Saldos Finais ---
+                    
                     const expectedBalance = activeSession.openingBalance + salesInCash + totalDeposits - totalWithdrawals;
                     const difference = input.actualBalance - expectedBalance;
 
-                    // --- 5. Atualizar a Sessão de Caixa ---
+                    
                     const updateResult = await context.MongoDB(context).collection('cash').findOneAndUpdate(
-                        { _id: activeSession._id, status: 'OPEN' }, // Filtro de segurança
+                        { _id: activeSession._id, status: 'OPEN' }, 
                         {
                             $set: {
                                 status: 'CLOSED',
@@ -197,7 +197,7 @@ module.exports = {
                             }
                         },
                         {
-                            returnDocument: 'after', // Retorna o documento *após* a atualização
+                            returnDocument: 'after', 
                             session
                         }
                     );
@@ -209,14 +209,14 @@ module.exports = {
                     closedSessionDocument = updateResult;
                 });
 
-                // Se a transação foi bem-sucedida, retorna o documento final
+                
                 return closedSessionDocument;
 
             } catch (error) {
                 console.error("Erro ao fechar o caixa (transação desfeita):", error);
                 throw new Error(error.message || "Não foi possível fechar o caixa.");
             } finally {
-                // Sempre fecha a sessão para liberar os recursos no servidor
+                
                 await session.endSession();
             }
         },
