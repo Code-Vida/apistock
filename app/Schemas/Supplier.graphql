@@ -18,24 +18,24 @@ input SupplierInput {
 
 type PurchaseOrderItem {
   productId: ID!
-  product: Product # Aninhamos os dados do produto para fácil exibição
-  variantInfo: ProducSaleVariant # Reutilizamos o tipo da venda { color, number }
+  product: Product 
+  variantInfo: ProducSaleVariant 
   quantity: Int!
-  costPrice: Float! # Custo por unidade
+  costPrice: Float! 
 }
 
-# O objeto principal de uma Ordem de Compra
+
 type PurchaseOrder {
   _id: ID!
-  supplier: Supplier! # Aninhamos os dados do fornecedor
-  status: String! # Ex: "PENDENTE", "RECEBIDO", "CANCELADO"
+  supplier: Supplier! 
+  status: String! 
   createdAt: String!
   receivedAt: String
   items: [PurchaseOrderItem!]!
   totalCost: Float!
 }
 
-# Input para criar um item na ordem de compra
+
 input PurchaseOrderItemInput {
   productId: ID!
   colorSlug: String!
@@ -44,7 +44,7 @@ input PurchaseOrderItemInput {
   costPrice: Float!
 }
 
-# Input para criar a ordem de compra
+
 input CreatePurchaseOrderInput {
   supplierId: ID!
   items: [PurchaseOrderItemInput!]!

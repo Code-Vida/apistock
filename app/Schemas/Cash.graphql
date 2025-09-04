@@ -5,7 +5,7 @@ type CashSession {
   status: String!
   openingBalance: Float!
   difference: Float
-  # Adicione outros campos que você queira retornar para o app
+  
 }
 
 enum CashMovementType {
@@ -14,18 +14,18 @@ enum CashMovementType {
 }
 
 input CashMovementInput {
-  type: CashMovementType! # Deve ser "DEPOSIT" ou "WITHDRAWAL"
+  type: CashMovementType! 
   amount: Float!
   description: String
 }
 
 input CloseCashSessionInput {
-  actualBalance: Float! # O valor que o operador contou na gaveta
+  actualBalance: Float! 
 }
 
 type CashMovementsSummary {
-  deposits: Float! # Entradas / Suprimentos
-  withdrawals: Float! # Saídas / Sangrias
+  deposits: Float! 
+  withdrawals: Float! 
 }
 
 type ActiveCashSessionSummary {

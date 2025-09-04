@@ -4,6 +4,7 @@ type Customer {
   phone: String
   email: String
   cpf: String
+  loyaltyPoints: Int
 }
 
 input CustomerInput {
@@ -22,14 +23,22 @@ type CustomerDetails {
 }
 
 enum CustomerMarketingFilterType {
-  TOP_BUYERS_VALUE # Melhores clientes por valor total gasto
-  TOP_BUYERS_FREQUENCY # Clientes com mais compras
-  AT_RISK # Clientes que não compram há um tempo
+  TOP_BUYERS_VALUE 
+  TOP_BUYERS_FREQUENCY 
+  AT_RISK 
 }
 
-# Input para a query, permitindo especificar o filtro e seus parâmetros
+
 input CustomerMarketingInput {
   filterType: CustomerMarketingFilterType!
   limit: Int
-  daysSinceLastPurchase: Int # Usado para o filtro AT_RISK
+  daysSinceLastPurchase: Int 
+}
+
+type LoyaltyTransaction {
+  id: ID!
+  type: String!
+  points: Int!
+  description: String!
+  createdAt: String!
 }

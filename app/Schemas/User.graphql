@@ -21,7 +21,7 @@ type User {
   email: String!
   role: String!
   store: Store!
-  commissionRate: Float # Taxa de comissão em porcentagem (ex: 5 para 5%)
+  commissionRate: Float 
   monthlyGoal: Float
 }
 
@@ -36,5 +36,5 @@ input CreateUserInput {
   name: String!
   email: String!
   password: String!
-  role: String! # Geralmente "VENDEDOR"
+  role: String! 
 }
