@@ -1,5 +1,5 @@
-const uuid = require("uuid"); 
-const FiscalService = require('../services/FiscalService'); 
+const uuid = require("uuid");
+const FiscalService = require('../services/FiscalService');
 
 
 module.exports = {
@@ -9,22 +9,21 @@ module.exports = {
     Mutation: {
         createSale: async (_, { input }, context) => {
             const { client, user } = context;
-
-            
             const { storeId } = user;
+
             if (!storeId) {
                 throw new Error("Acesso negado: O usuário não está associado a uma loja.");
             }
 
             const session = client.startSession();
-
             let savedSaleDocument;
-            let storeConfig;
 
+            let customer = null
+            if(input.customerId){
+                customer = await context.MongoDB(context).collection('customers').findOne({ _id: input.customerId, storeId: storeId });
+            }
             try {
-                
                 await session.withTransaction(async () => {
-                    
                     const saleDocument = {
                         _id: uuid.v4(),
                         createdAt: new Date(),
@@ -37,26 +36,19 @@ module.exports = {
                         finalAmount: input.finalAmount,
                         items: input.items.map(item => ({
                             productId: item.productId,
-                            
                             variants: {
                                 colorSlug: item.variants.colorSlug,
                                 number: item.variants.number,
                             },
                             quantity: item.quantity,
                             priceAtTimeOfSale: item.priceAtTimeOfSale,
-                            brand: item.brand,
-                            model: item.model,
-                            ncm: item.ncm,
-                            origem: item.origem,
                         })),
-                        nfceStatus: 'pendente', 
+                        nfceStatus: '',
+                        customer: customer,
                     };
                     await context.MongoDB(context).collection('sales').insertOne(saleDocument, { session });
-
-                    
                     savedSaleDocument = saleDocument;
 
-                    
                     for (const item of input.items) {
                         const productUpdateResult = await context.MongoDB(context).collection('products_new').updateOne(
                             {
@@ -69,9 +61,7 @@ module.exports = {
                                 },
                                 'variants.colorSlug': item.variants.colorSlug
                             },
-                            {
-                                $inc: { 'variants.$[v].items.$[i].amount': -item.quantity }
-                            },
+                            { $inc: { 'variants.$[v].items.$[i].amount': -item.quantity } },
                             {
                                 arrayFilters: [
                                     { 'v.colorSlug': item.variants.colorSlug },
@@ -87,50 +77,59 @@ module.exports = {
                     }
                 });
 
-                
                 if (!savedSaleDocument) {
                     throw new Error("A transação da venda falhou e foi revertida.");
                 }
 
-                
-                
-                storeConfig = await context.MongoDB(context).collection('stores').findOne({ _id: storeId });
 
-                
-                if (storeConfig && storeConfig.hasFiscalModule === true) {
+                const storeConfig = await context.MongoDB(context).collection('stores').findOne({ _id: storeId });
 
-                    
+
+                if (storeConfig?.hasFiscalModule === true) {
                     if (!storeConfig.cnpj?.trim() || !storeConfig.inscricaoEstadual?.trim()) {
-                        
-                        
-                        console.warn(`Venda ${savedSaleDocument._id}: Módulo fiscal ativo, mas configurações da loja estão incompletas. A nota não será emitida.`);
+                        console.warn(`Venda ${savedSaleDocument._id}: Módulo fiscal ativo, mas configurações da loja estão incompletas.`);
                     } else {
-                        
-                        console.log(`Venda ${savedSaleDocument._id} salva. Cliente tem módulo fiscal. Disparando emissão em segundo plano...`);
-
-                        
-                        
+                        console.log(`Venda ${savedSaleDocument._id} salva. Disparando emissão de NFC-e...`);
                         FiscalService.emitirNFCe(savedSaleDocument, storeConfig, context)
-                            .catch(err => {
-                                
-                                
-                                console.error(`[BACKGROUND JOB] Erro ao iniciar emissão para a venda ${savedSaleDocument._id}:`, err.message);
-                            });
+                            .catch(err => console.error(`[BG JOB] Erro ao emitir NFC-e para a venda ${savedSaleDocument._id}:`, err.message));
                     }
-                } else {
-                    
-                    console.log(`Venda ${savedSaleDocument._id} salva. Cliente não possui módulo fiscal ativo. Nenhuma nota será emitida.`);
                 }
 
-                
-                return true;
+
+                if (savedSaleDocument.customerId && storeConfig?.loyaltyProgramSettings?.enabled === true) {
+                    try {
+                        const pointsPerDollar = storeConfig.loyaltyProgramSettings.pointsPerDollar || 1;
+                        const pointsEarned = Math.floor(savedSaleDocument.finalAmount * pointsPerDollar);
+
+                        if (pointsEarned > 0) {
+                            await context.MongoDB(context).collection('customers').updateOne(
+                                { _id: savedSaleDocument.customerId },
+                                { $inc: { loyaltyPoints: pointsEarned } }
+                            );
+                            await context.MongoDB(context).collection('loyalty_transactions').insertOne({
+                                _id: uuid.v4(),
+                                customerId: savedSaleDocument.customerId,
+                                storeId: storeId,
+                                type: 'earn',
+                                points: pointsEarned,
+                                description: `Pontos da Venda #${savedSaleDocument._id.substring(0, 8)}`,
+                                relatedSaleId: savedSaleDocument._id,
+                                createdAt: new Date(),
+                            });
+                            console.log(`[FIDELIDADE] ${pointsEarned} pontos adicionados ao cliente ${savedSaleDocument.customerId}`);
+                        }
+                    } catch (loyaltyError) {
+                        console.error(`[FIDELIDADE] Erro ao processar pontos para a venda ${savedSaleDocument._id}:`, loyaltyError);
+                    }
+                }
+
+
+                return savedSaleDocument;
 
             } catch (error) {
                 console.error("Erro na transação de venda. As alterações foram desfeitas (rollback).", error);
-                
                 throw new Error(error.message || "Não foi possível concluir a venda. Tente novamente.");
             } finally {
-                
                 await session.endSession();
             }
         },
@@ -167,9 +166,9 @@ module.exports = {
             const { user, MongoDB } = context;
             if (user.role !== 'ADMIN') throw new Error("Apenas administradores podem definir metas.");
 
-            
+
             const result = await MongoDB(context).collection('users').findOneAndUpdate(
-                { _id: userId, storeId: user.storeId }, 
+                { _id: userId, storeId: user.storeId },
                 { $set: { monthlyGoal: goal } },
                 { returnDocument: 'after' }
             );

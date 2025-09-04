@@ -31,9 +31,11 @@ type Query {
 
   #customers
   getCustomerById(id: ID!): Customer @auth
-  searchCustomers(searchText: String!): [Customer] @auth
+  searchCustomers(searchText: String): [Customer] @auth
   getCustomerDetails(id: ID!): CustomerDetails @auth
   getCustomerMarketingReport(input: CustomerMarketingInput!): [Customer] @auth
+  getCustomerLoyaltyHistory(customerId: ID!): [LoyaltyTransaction] @auth
+
 
   #suppliers
   getSuppliers(searchText: String): [Supplier] @auth
@@ -47,6 +49,8 @@ type Query {
 
   #store
   getStore: Store
+
+  
 
 }
 
@@ -69,7 +73,8 @@ type Mutation {
   createReturn(input: CreateReturnInput!): Boolean @auth
 
   #sales
-  createSale(input: CreateSaleInput!): Boolean  @auth# Pode retornar a Venda se preferir
+  createSale(input: CreateSaleInput!): Sale  @auth
+  redeemLoyaltyPoints(customerId: ID!, pointsToRedeem: Int!): Sale @auth
 
   #cash
   openCashSession(openingBalance: Float!): CashSession! @auth
@@ -85,7 +90,7 @@ type Mutation {
   updateSupplier(id: ID!, input: SupplierInput!): Supplier @auth
   deleteSupplier(id: ID!): Boolean @auth
   createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder @auth
-  receivePurchaseOrder(id: ID!): Boolean  @auth# Mutação para dar entrada no estoque
+  receivePurchaseOrder(id: ID!): Boolean  @auth
 
 
   #login
