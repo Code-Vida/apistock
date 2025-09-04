@@ -101,11 +101,11 @@ input ReturnItemInput {
   priceAtTimeOfSale: Float!
 }
 
-# Input principal para a mutação de criar a devolução
+
 input CreateReturnInput {
   originalSaleId: ID!
   items: [ReturnItemInput!]!
   totalRefundAmount: Float!
-  refundMethod: String! # Ex: "Dinheiro", "Crédito na Loja"
-  reason: String # Opcional
+  refundMethod: String! 
+  reason: String 
 }

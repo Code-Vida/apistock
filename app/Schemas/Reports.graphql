@@ -1,12 +1,12 @@
-# Representa o card de resumo de lucratividade
+
 type ProfitabilitySummary {
-    totalRevenue: Float! # Faturamento bruto(soma de priceAtTimeOfSale)
-totalCost: Float!    # Custo total dos produtos vendidos(soma de costAtTimeOfSale)
-totalProfit: Float!  # Lucro bruto(Revenue - Cost)
-profitMargin: Float! # Margem de lucro em % ((Profit / Revenue) * 100)
+    totalRevenue: Float! 
+totalCost: Float!    
+totalProfit: Float!  
+profitMargin: Float! 
 }
 
-# Representa um produto no ranking de lucratividade
+
 type ProfitableProduct {
     productId: ID!
     brand: String
@@ -15,7 +15,7 @@ type ProfitableProduct {
     totalQuantitySold: Int!
 }
 
-# O objeto completo que a nossa query principal irá retornar
+
 type ProfitabilityReport {
     summary: ProfitabilitySummary!
     topProducts: [ProfitableProduct!]!
@@ -35,7 +35,7 @@ type ProducSaleVariant {
   number: Int
 }
 
-# Definição de um item individual dentro de uma venda
+
 type SaleItem {
   productId: ID!
   variants: ProducSaleVariant
@@ -45,10 +45,10 @@ type SaleItem {
   product: Product
 }
 
-# Definição do documento principal de uma Venda
+
 type Sale {
   _id: ID!
-  createdAt: String! # Usamos String para simplicidade, pode ser um tipo DateTime customizado
+  createdAt: String! 
   totalAmount: Float
   discount: Float
   finalAmount: Float
@@ -68,24 +68,24 @@ type PaymentMethodSummary {
   salesCount: Int!
 }
 
-# Representa os cards de resumo no topo do relatório
+
 type InventorySummary {
-  totalCostValue: Float!    # Valor total do estoque a preço de custo
-  totalSaleValue: Float!    # Valor total do estoque a preço de venda
-  totalItemCount: Int!      # Número total de peças no estoque
+  totalCostValue: Float!    
+  totalSaleValue: Float!    
+  totalItemCount: Int!      
 }
 
-# Representa um produto na lista detalhada do inventário
+
 type InventoryProductItem {
   id: ID!
   brand: String
   model: String
-  totalQuantity: Int!       # Quantidade total em estoque para este produto (somando todas as variantes)
-  totalCostValue: Float!    # Valor de custo total para este produto
-  totalSaleValue: Float!    # Valor de venda total para este produto
+  totalQuantity: Int!       
+  totalCostValue: Float!    
+  totalSaleValue: Float!    
 }
 
-# O objeto completo que a query principal irá retornar
+
 type InventoryReport {
   summary: InventorySummary!
   products: [InventoryProductItem!]!
@@ -94,12 +94,12 @@ type InventoryReport {
 
 type SalesPerformanceReport {
   totalSoldByUser: Float!
-  commissionEarned: Float! # Comissão base
-  bonusEarned: Float!      # Valor do bônus
-  totalCommission: Float!  # Comissão + Bônus
+  commissionEarned: Float! 
+  bonusEarned: Float!      
+  totalCommission: Float!  
   salesCountByUser: Int!
   storeTotalSold: Float!
   storeGoal: Float!
-  userGoal: Float!             # A meta individual do vendedor
-  userGoalProgress: Float!     # O progresso em % (ex: 105.5 para 105.5%)
+  userGoal: Float!             
+  userGoalProgress: Float!     
 }
