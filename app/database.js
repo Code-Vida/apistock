@@ -100,6 +100,11 @@ function MongoDB(context) {
           const secureFilter = applyStoreIdFilter ? { ...filter, storeId } : filter;
           return collection.findOneAndUpdate(secureFilter, update, options);
         },
+        replaceOne: (filter, replacement, options) => {
+          const secureFilter = applyStoreIdFilter ? { ...filter, storeId } : filter;
+          const update = applyStoreIdFilter ? { ...replacement, storeId } : replacement;
+          return collection.replaceOne(secureFilter, update, options)
+        },
         bulkWrite: (operations, options) => {
           if (applyStoreIdFilter) {
             operations.forEach(op => {

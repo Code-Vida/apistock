@@ -8,6 +8,8 @@ type Product {
   value: Float
   purchaseValue: Float
   lowStockAcknowledgedAt: String
+  ncm: String
+  origem: String
 }
 
 type ProductVariant {
