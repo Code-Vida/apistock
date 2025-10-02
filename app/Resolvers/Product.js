@@ -66,8 +66,15 @@ module.exports = {
 
       
       return products;
-    }
+    },
+    async getAllProducts(_, __, context) {
+      const products = await context.MongoDB(context)
+        .collection("products_new")
+        .find({})
+        .toArray();
 
+      return products;
+    },
   },
 
   Product: {

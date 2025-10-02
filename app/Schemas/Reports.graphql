@@ -48,7 +48,7 @@ type SaleItem {
 
 type Sale {
   _id: ID!
-  createdAt: String! 
+  createdAt: Date! 
   totalAmount: Float
   discount: Float
   finalAmount: Float

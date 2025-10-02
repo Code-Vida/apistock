@@ -25,7 +25,7 @@ module.exports = {
             try {
                 await session.withTransaction(async () => {
                     const saleDocument = {
-                        _id: uuid.v4(),
+                        _id: input._id || uuid.v4(),
                         createdAt: new Date(),
                         storeId: storeId,
                         userId: user.userId,
