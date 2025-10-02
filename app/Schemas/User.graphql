@@ -37,4 +37,5 @@ input CreateUserInput {
   email: String!
   password: String!
   role: String! 
+  commissionRate: Float
 }

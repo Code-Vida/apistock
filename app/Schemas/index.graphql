@@ -7,6 +7,7 @@ type Query {
   #products
   getProduct(input: ProductInput, pagination: PaginationInput): ProductResponse @auth
   searchProducts(input: ProductSearchInput): [Product] @auth
+  getAllProducts: [Product] @auth
   #audiences(pagination: PaginationInput): AudiencesResponse @auth(requires: [USER])
 
   #report
@@ -35,6 +36,7 @@ type Query {
   getCustomerDetails(id: ID!): CustomerDetails @auth
   getCustomerMarketingReport(input: CustomerMarketingInput!): [Customer] @auth
   getCustomerLoyaltyHistory(customerId: ID!): [LoyaltyTransaction] @auth
+  getAllCustomers: [Customer]
 
 
   #suppliers

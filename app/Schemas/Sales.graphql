@@ -12,11 +12,13 @@ input SaleItemInput {
 
 
 input CreateSaleInput {
+  _id: ID
   items: [SaleItemInput!]!
   paymentMethod: String!
   totalAmount: Float! 
   discount: Float 
   finalAmount: Float! 
   customerId: ID 
+  createdAt: Date
 }
 

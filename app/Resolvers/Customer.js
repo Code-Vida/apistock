@@ -100,6 +100,19 @@ module.exports = {
                 throw new Error("Não foi possível gerar o relatório.");
             }
         },
+
+        getAllCustomers: async (_, __, context) => {
+            const { user } = context;
+            if (!user || !user.storeId) {
+                throw new Error("Autenticação necessária.");
+            }
+
+            const customers = await context.MongoDB(context).collection('customers')
+                .find({ storeId: user.storeId })
+                .toArray();
+
+            return customers;
+        }
     },
 
     Mutation: {

@@ -29,8 +29,8 @@ type PurchaseOrder {
   _id: ID!
   supplier: Supplier! 
   status: String! 
-  createdAt: String!
-  receivedAt: String
+  createdAt: Date!
+  receivedAt: Date
   items: [PurchaseOrderItem!]!
   totalCost: Float!
 }

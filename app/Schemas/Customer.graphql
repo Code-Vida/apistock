@@ -8,6 +8,7 @@ type Customer {
 }
 
 input CustomerInput {
+  _id: ID
   name: String!
   phone: String
   email: String
@@ -40,5 +41,5 @@ type LoyaltyTransaction {
   type: String!
   points: Int!
   description: String!
-  createdAt: String!
+  createdAt: Date!
 }
