@@ -153,7 +153,6 @@ module.exports = {
 
     async updateProduct(_, args, context) {
       const { input } = args
-      console.log(input)
       const result = await context.MongoDB(context).collection("products_new").replaceOne(
         { _id: input.id },
         input,
