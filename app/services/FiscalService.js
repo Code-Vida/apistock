@@ -22,10 +22,7 @@ class FiscalService {
         const saleId = saleDocument._id;
         const { MongoDB } = context;
 
-        try {
-            console.log(`[FiscalService] Iniciando emissão para venda: ${saleId}`);
-
-            
+        try {            
             await MongoDB(context).collection('sales').updateOne(
                 { _id: saleId },
                 { $set: { nfceStatus: 'processando' } }
@@ -43,11 +40,7 @@ class FiscalService {
             });
 
             
-            if (response.status === 202) {
-                console.log(`[FiscalService] Venda ${saleId} enviada com sucesso. Status: ${response.data.status}. Agendando consulta.`);
-
-                
-                
+            if (response.status === 202) {  
                 setTimeout(() => this.consultarStatusNFCe(saleId, context), 8000); 
             } else {
                 throw new Error(`Resposta inesperada da API: ${response.status} - ${response.data}`);
@@ -73,8 +66,6 @@ class FiscalService {
      */
     static async consultarStatusNFCe(saleId, context) {
         const { MongoDB } = context;
-        console.log(`[FiscalService] Consultando status da venda: ${saleId}`);
-
         try {
             const url = `${FOCUS_NFE_BASE_URL}/v2/nfe/${saleId}`;
             const response = await axios.get(url, {
@@ -92,7 +83,6 @@ class FiscalService {
                         nfcePdfUrl: data.caminho_danfe,
                         nfceXmlUrl: data.caminho_xml_nota_fiscal,
                     };
-                    console.log(`[FiscalService] Venda ${saleId} AUTORIZADA.`);
                     break;
                 case 'rejeitada':
                     updatePayload = {
@@ -102,8 +92,6 @@ class FiscalService {
                     console.warn(`[FiscalService] Venda ${saleId} REJEITADA: ${data.motivo_rejeicao}`);
                     break;
                 case 'processando':
-                    
-                    console.log(`[FiscalService] Venda ${saleId} ainda em processamento. Tentando novamente em 10s.`);
                     setTimeout(() => this.consultarStatusNFCe(saleId, context), 10000);
                     return; 
                 default:

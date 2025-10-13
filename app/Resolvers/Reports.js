@@ -69,7 +69,6 @@ module.exports = {
                 ];
 
                 const sales = await context.MongoDB(context).collection('sales').aggregate(pipeline).toArray();
-                console.log("Vendas encontradas:", sales);
                 return sales;
 
             } catch (error) {
@@ -110,14 +109,14 @@ module.exports = {
                     
                     {
                         $lookup: {
-                            from: "products", 
+                            from: "products_new", 
                             localField: "_id",
                             foreignField: "_id",
                             as: "productInfo",
                         },
                     },
                     
-                    { $unwind: "$productInfo" },
+                    { $unwind: { path: "$productInfo", preserveNullAndEmptyArrays: true } },
                     
                     {
                         $project: {
@@ -171,8 +170,8 @@ module.exports = {
                     },
                     { $sort: { totalProfit: -1 } },
                     { $limit: 15 }, 
-                    { $lookup: { from: "products", localField: "_id", foreignField: "_id", as: "productInfo" } },
-                    { $unwind: "$productInfo" },
+                    { $lookup: { from: "products_new", localField: "_id", foreignField: "_id", as: "productInfo" } },
+                    { $unwind: { path: "$productInfo", preserveNullAndEmptyArrays: true } },
                     {
                         $project: {
                             _id: 0,

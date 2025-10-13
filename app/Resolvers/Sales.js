@@ -89,7 +89,6 @@ module.exports = {
                     if (!storeConfig.cnpj?.trim() || !storeConfig.inscricaoEstadual?.trim()) {
                         console.warn(`Venda ${savedSaleDocument._id}: Módulo fiscal ativo, mas configurações da loja estão incompletas.`);
                     } else {
-                        console.log(`Venda ${savedSaleDocument._id} salva. Disparando emissão de NFC-e...`);
                         FiscalService.emitirNFCe(savedSaleDocument, storeConfig, context)
                             .catch(err => console.error(`[BG JOB] Erro ao emitir NFC-e para a venda ${savedSaleDocument._id}:`, err.message));
                     }
@@ -116,7 +115,6 @@ module.exports = {
                                 relatedSaleId: savedSaleDocument._id,
                                 createdAt: new Date(),
                             });
-                            console.log(`[FIDELIDADE] ${pointsEarned} pontos adicionados ao cliente ${savedSaleDocument.customerId}`);
                         }
                     } catch (loyaltyError) {
                         console.error(`[FIDELIDADE] Erro ao processar pontos para a venda ${savedSaleDocument._id}:`, loyaltyError);

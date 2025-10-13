@@ -89,7 +89,6 @@ module.exports = {
                     throw new Error("Falha ao salvar a nova sessão no banco de dados.");
                 }
 
-                console.log(`Caixa aberto com sucesso. ID da Sessão: ${newSessionDocument._id}`);
                 return newSessionDocument;
 
             } catch (error) {
