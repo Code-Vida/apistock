@@ -1,0 +1,51 @@
+type Supplier {
+  _id: ID!
+  name: String!
+  contactName: String
+  phone: String
+  email: String
+  cnpj: String
+}
+
+
+input SupplierInput {
+  name: String!
+  contactName: String
+  phone: String
+  email: String
+  cnpj: String
+}
+
+type PurchaseOrderItem {
+  productId: ID!
+  product: Product 
+  variantInfo: ProducSaleVariant 
+  quantity: Int!
+  costPrice: Float! 
+}
+
+
+type PurchaseOrder {
+  _id: ID!
+  supplier: Supplier! 
+  status: String! 
+  createdAt: Date!
+  receivedAt: Date
+  items: [PurchaseOrderItem!]!
+  totalCost: Float!
+}
+
+
+input PurchaseOrderItemInput {
+  productId: ID!
+  colorSlug: String!
+  number: Int!
+  quantity: Int!
+  costPrice: Float!
+}
+
+
+input CreatePurchaseOrderInput {
+  supplierId: ID!
+  items: [PurchaseOrderItemInput!]!
+}

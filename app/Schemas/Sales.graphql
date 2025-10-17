@@ -1,0 +1,24 @@
+input SaleItemInput {
+  productId: ID!
+  variants: ProductSalesVariant!
+  quantity: Int!
+  priceAtTimeOfSale: Float!
+  costAtTimeOfSale: Float
+  brand: String
+  model: String
+  ncm: String
+  origem: String
+}
+
+
+input CreateSaleInput {
+  _id: ID
+  items: [SaleItemInput!]!
+  paymentMethod: String!
+  totalAmount: Float! 
+  discount: Float 
+  finalAmount: Float! 
+  customerId: ID 
+  createdAt: Date
+}
+

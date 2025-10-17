@@ -1,15 +1,33 @@
 type Product {
   id: ID
-  barCode: String
+  slug: String
   brand: String
   model: String
-  color: String
+  imageUrl: String
+  variants: [ProductVariant]  
+  value: Float
+  purchaseValue: Float
+  lowStockAcknowledgedAt: String
+  ncm: String
+  origem: String
+}
+
+type ProductVariant {
+  colorSlug: String
+  colorLabel: String
+  hex1: String
+  hex2: String
+  items: [ProductItem]  
+}
+
+type ProductItem {
   number: Int
   value: Float
   purchaseValue: Float
   purchaseDate: Date
   amount: Int
   sales: Int
+  barCode: String
 }
 
 input ProductInput {
@@ -19,10 +37,10 @@ input ProductInput {
   model: String
   color: String
   number: Int
-  value: Float
-  purchaseValue: Float
   purchaseDate: Date
   amount: Int
+  lowStockThreshold: Int
+  limit: Int
 }
 
 type Total {
@@ -34,4 +52,60 @@ type ProductResponse {
   nodes: [Product]
   pagination: Pagination
   total: Total
+}
+
+input ProductInputNew {
+  id: ID
+  brand: String
+  model: String
+  value: Float
+  purchaseValue: Float
+  variants: [InputProductVariant]
+}
+
+input InputProductVariant{
+  colorSlug: String
+  colorLabel: String
+  hex1: String
+  hex2: String
+  items: [InputProductItem]  
+}
+
+input InputProductItem {
+  number: Int
+  value: Float
+  purchaseValue: Float
+  purchaseDate: Date
+  amount: Int
+  sales: Int
+  barCode: String
+}
+
+input ProductSearchInput {
+  text: String
+  barCode: String
+  limit: Int
+}
+
+type StockEntryResult {
+  updatedProductsCount: Int!
+  notFoundEans: [String!]!
+}
+
+
+input ReturnItemInput {
+  productId: ID!
+  colorSlug: String!
+  number: Int!
+  quantity: Int!
+  priceAtTimeOfSale: Float!
+}
+
+
+input CreateReturnInput {
+  originalSaleId: ID!
+  items: [ReturnItemInput!]!
+  totalRefundAmount: Float!
+  refundMethod: String! 
+  reason: String 
 }

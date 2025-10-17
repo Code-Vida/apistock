@@ -1,0 +1,45 @@
+type Customer {
+  _id: ID!
+  name: String!
+  phone: String
+  email: String
+  cpf: String
+  loyaltyPoints: Int
+}
+
+input CustomerInput {
+  _id: ID
+  name: String!
+  phone: String
+  email: String
+  cpf: String
+}
+
+type CustomerDetails {
+  customer: Customer!
+  totalSpent: Float!
+  totalPurchases: Int!
+  lastPurchaseDate: String
+  salesHistory: [Sale]!
+}
+
+enum CustomerMarketingFilterType {
+  TOP_BUYERS_VALUE 
+  TOP_BUYERS_FREQUENCY 
+  AT_RISK 
+}
+
+
+input CustomerMarketingInput {
+  filterType: CustomerMarketingFilterType!
+  limit: Int
+  daysSinceLastPurchase: Int 
+}
+
+type LoyaltyTransaction {
+  id: ID!
+  type: String!
+  points: Int!
+  description: String!
+  createdAt: Date!
+}

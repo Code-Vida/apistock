@@ -1,6 +1,7 @@
 const { join } = require('path')
 const { readdirSync } = require('fs')
 
+// eslint-disable-next-line no-undef
 const allFilesButIndex = readdirSync(join(__dirname)).filter((f) => f !== 'index.js')
 const resolvers = allFilesButIndex.map((file) => require(`./${file}`))
 
