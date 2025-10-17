@@ -1,17 +1,59 @@
 scalar Date
 
 type Query {
-  version: String
-  getAll: [UserResponse]
+  version: String 
+  getAll: [UserResponse] @auth
 
   #products
-  getProduct(input: ProductInput, pagination: PaginationInput): ProductResponse
-
+  getProduct(input: ProductInput, pagination: PaginationInput): ProductResponse @auth
+  searchProducts(input: ProductSearchInput): [Product] @auth
+  getAllProducts: [Product] @auth
   #audiences(pagination: PaginationInput): AudiencesResponse @auth(requires: [USER])
 
   #report
-  salesReport(input: Date): SalesReportResponse
-  stockReport(input: ID): ProductResponse
+  salesReport(input: Date): SalesReportResponse @auth
+  stockReport(input: ID): ProductResponse @auth
+  topSellingProducts(startDate: String! endDate: String! sortBy: String limit: Int): [TopSellingProduct] @auth
+  getProfitabilityReport(startDate: String!, endDate: String!): ProfitabilityReport @auth
+  getDailyCashClosingReport(date: String!): [PaymentMethodSummary] @auth
+  getInventoryReport: InventoryReport @auth
+  getSalesPerformanceReport(userId: ID, month: Int, year: Int): SalesPerformanceReport @auth
+  
+  #dashboard
+  dashboardSummary(date: String): DashboardSummary @auth
+  lowStockProducts(limit: Int, threshold: Int): [LowStockProduct] @auth
+
+  #sales
+  getSales(startDate: String, endDate: String, limit: Int, offset: Int): [Sale] @auth
+
+  #cash
+  getActiveCashSession: CashSession @auth
+  getActiveCashSessionSummary: ActiveCashSessionSummary @auth
+
+  #customers
+  getCustomerById(id: ID!): Customer @auth
+  searchCustomers(searchText: String): [Customer] @auth
+  getCustomerDetails(id: ID!): CustomerDetails @auth
+  getCustomerMarketingReport(input: CustomerMarketingInput!): [Customer] @auth
+  getCustomerLoyaltyHistory(customerId: ID!): [LoyaltyTransaction] @auth
+  getAllCustomers: [Customer]
+
+
+  #suppliers
+  getSuppliers(searchText: String): [Supplier] @auth
+  getSupplierById(id: ID!): Supplier @auth
+  getPurchaseOrders(status: String): [PurchaseOrder] @auth
+  getPurchaseOrderById(id: ID!): PurchaseOrder @auth
+
+  #user
+  me: User
+  getUsersByStore: [User]
+
+  #store
+  getStore: Store
+
+  
+
 }
 
 type Mutation {
@@ -19,12 +61,51 @@ type Mutation {
 
   #user
   # login(input: LoginInput!): UserResponse
-  createUser(input: UserInput!): UserResponse
+  #createUser(input: UserInput!): UserResponse  @auth
 
   #products
-  createProduct(input: ProductInput): Product
-  sales(input: ID): Product
+  createProduct(input: ProductInputNew): Boolean @auth
+  sales(input: ID): Product @auth
+  updateProduct(input: ProductInputNew): Boolean @auth
+  acknowledgeLowStock(productId: ID!): Product @auth
+  processDunCode(dunCode: String!, quantityPerEan: Int!): StockEntryResult! @auth
 
   #devolution
-  devolution(input: ID): Boolean
+  devolution(input: ID): Boolean @auth
+  createReturn(input: CreateReturnInput!): Boolean @auth
+
+  #sales
+  createSale(input: CreateSaleInput!): Sale  @auth
+  redeemLoyaltyPoints(customerId: ID!, pointsToRedeem: Int!): Sale @auth
+
+  #cash
+  openCashSession(openingBalance: Float!): CashSession! @auth
+  addCashMovement(input: CashMovementInput!): Boolean @auth
+  closeCashSession(input: CloseCashSessionInput!): CashSession @auth
+
+  #customers
+  createCustomer(input: CustomerInput!): Customer @auth
+  updateCustomer(id: ID!, input: CustomerInput!): Customer @auth
+
+  #suppliers
+  createSupplier(input: SupplierInput!): Supplier @auth
+  updateSupplier(id: ID!, input: SupplierInput!): Supplier @auth
+  deleteSupplier(id: ID!): Boolean @auth
+  createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder @auth
+  receivePurchaseOrder(id: ID!): Boolean  @auth
+
+
+  #login
+  signUp(storeName: String!, name: String!, email: String!, password: String!): AuthPayload!
+  login(email: String!, password: String!): AuthPayload!
+  setManagerPin(pin: String!): Boolean
+  authorizeAction(pin: String!): Boolean
+  createUser(input: CreateUserInput!): User
+  resetUserPassword(userId: ID!, newPassword: String!): Boolean
+
+  #commission and goals
+  setUserCommissionRate(userId: ID!, rate: Float!): User  
+  setMonthlySalesGoal(goal: Float!): Store
+  setUserSalesGoal(userId: ID!, goal: Float!): User
+
 }

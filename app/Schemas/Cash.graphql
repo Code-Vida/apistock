@@ -1,0 +1,37 @@
+type CashSession {
+  _id: ID!
+  openedAt: String!
+  closedAt: String
+  status: String!
+  openingBalance: Float!
+  difference: Float
+  
+}
+
+enum CashMovementType {
+  DEPOSIT
+  WITHDRAWAL
+}
+
+input CashMovementInput {
+  type: CashMovementType! 
+  amount: Float!
+  description: String
+}
+
+input CloseCashSessionInput {
+  actualBalance: Float! 
+}
+
+type CashMovementsSummary {
+  deposits: Float! 
+  withdrawals: Float! 
+}
+
+type ActiveCashSessionSummary {
+  openingBalance: Float!
+  totalSalesByPaymentMethod: [PaymentMethodSummary!]!
+  totalMovements: CashMovementsSummary!
+  expectedBalanceInCash: Float!
+}
+

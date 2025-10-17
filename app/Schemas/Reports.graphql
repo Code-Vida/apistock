@@ -1,0 +1,106 @@
+
+type ProfitabilitySummary {
+    totalRevenue: Float! 
+totalCost: Float!    
+totalProfit: Float!  
+profitMargin: Float! 
+}
+
+
+type ProfitableProduct {
+    productId: ID!
+    brand: String
+    model: String
+    totalProfit: Float!
+    totalQuantitySold: Int!
+}
+
+
+type ProfitabilityReport {
+    summary: ProfitabilitySummary!
+    topProducts: [ProfitableProduct!]!
+}
+
+
+type TopSellingProduct {
+  productId: ID!
+  brand: String
+  model: String
+  totalQuantitySold: Int!
+  totalRevenue: Float!
+}
+
+type ProducSaleVariant {
+  colorSlug: String
+  number: Int
+}
+
+
+type SaleItem {
+  productId: ID!
+  variants: ProducSaleVariant
+  quantity: Int!
+  priceAtTimeOfSale: Float
+  costAtTimeOfSale: Float
+  product: Product
+}
+
+
+type Sale {
+  _id: ID!
+  createdAt: Date! 
+  totalAmount: Float
+  discount: Float
+  finalAmount: Float
+  paymentMethod: String!
+  items: [SaleItem!]!
+  customer: Customer
+  nfceStatus: String
+}
+
+input ProductSalesVariant {
+  colorSlug: String
+  number: Int
+}
+
+type PaymentMethodSummary {
+  paymentMethod: String!
+  totalAmount: Float!
+  salesCount: Int!
+}
+
+
+type InventorySummary {
+  totalCostValue: Float!    
+  totalSaleValue: Float!    
+  totalItemCount: Int!      
+}
+
+
+type InventoryProductItem {
+  id: ID!
+  brand: String
+  model: String
+  totalQuantity: Int!       
+  totalCostValue: Float!    
+  totalSaleValue: Float!    
+}
+
+
+type InventoryReport {
+  summary: InventorySummary!
+  products: [InventoryProductItem!]!
+}
+
+
+type SalesPerformanceReport {
+  totalSoldByUser: Float!
+  commissionEarned: Float! 
+  bonusEarned: Float!      
+  totalCommission: Float!  
+  salesCountByUser: Int!
+  storeTotalSold: Float!
+  storeGoal: Float!
+  userGoal: Float!             
+  userGoalProgress: Float!     
+}

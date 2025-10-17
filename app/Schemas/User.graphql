@@ -13,3 +13,29 @@ input UserInput {
   firstName: String
   lastName: String
 }
+
+
+type User {
+  _id: ID!
+  name: String!
+  email: String!
+  role: String!
+  store: Store!
+  commissionRate: Float 
+  monthlyGoal: Float
+}
+
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+
+input CreateUserInput {
+  name: String!
+  email: String!
+  password: String!
+  role: String! 
+  commissionRate: Float
+}

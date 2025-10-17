@@ -1,42 +1,145 @@
 "use strict";
-const { MongoDB } = require("../database");
 const uuid = require("uuid");
+const bcrypt = require('bcryptjs');
 
 module.exports = {
   Query: {
-    async getAll() {
-      return await MongoDB().collection("users").find({}).toArray();
+    async getAll(_, __, context) {
+      return await context.MongoDB(context).collection("users").find({}).toArray();
+    },
+
+    getUsersByStore: async (_, __, context) => {
+      const { user, MongoDB } = context;
+
+
+      if (user.role !== 'ADMIN') {
+        throw new Error("Apenas administradores podem ver a lista de usuários.");
+      }
+
+
+      const users = await MongoDB(context).collection('users').find({ storeId: user.storeId }).toArray();
+      return users;
     },
   },
 
   Mutation: {
-    // async login(_, args, { req }) {
-    //   const { email, password } = args.input;
+    createUser: async (_, { input }, context) => {
+      const { user, MongoDB } = context;
+      if (user.role !== 'ADMIN') {
+        throw new Error("Apenas administradores podem criar novos usuários.");
+      }
 
-    //   const user = await MongoDB()
-    //     .collection("users")
-    //     .findOne({ email: email });
-    //   if (!user) {
-    //     throw new Error("Usuário não cadastrado");
-    //   }
+      const { name, email, password, role } = input;
+      if (password.length < 6) throw new Error('A senha precisa ter no mínimo 6 caracteres.');
 
-    //   if (user.password !== password) {
-    //     throw new Error("Senha inválida");
-    //   }
-    //   console.log(user);
+      const existingUser = await MongoDB(context).collection('users').findOne({ email });
+      if (existingUser) throw new Error('Este e-mail já está em uso.');
 
-    //   return user;
-    // },
+      const hashedPassword = await bcrypt.hash(password, 12);
 
-    async createUser(_, args) {
-      const { firstName, lastName } = args.input;
-      const insertUser = await MongoDB().collection("users").insertOne({
-        id: uuid.v4(),
-        firstName: firstName,
-        lastName: lastName,
-      });
+      const newUser = {
+        _id: uuid.v4(),
+        name,
+        email,
+        password: hashedPassword,
+        role: role,
+        storeId: user.storeId,
+        createdAt: new Date(),
+      };
 
-      return { id: insertUser.insertedId };
+      await MongoDB(context).collection('users').insertOne(newUser);
+      return newUser;
+    },
+
+    resetUserPassword: async (_, { userId, newPassword }, context) => {
+      const { user, MongoDB } = context;
+      if (user.role !== 'ADMIN') {
+        throw new Error("Apenas administradores podem redefinir senhas.");
+      }
+      if (newPassword.length < 6) throw new Error('A nova senha precisa ter no mínimo 6 caracteres.');
+
+
+      const userToUpdate = await MongoDB(context).collection('users').findOne({ _id: userId });
+
+
+      if (!userToUpdate || userToUpdate.storeId !== user.storeId) {
+        throw new Error("Usuário não encontrado ou não pertence a esta loja.");
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      await MongoDB(context).collection('users').updateOne(
+        { _id: userId },
+        { $set: { password: hashedPassword } }
+      );
+
+      return true;
+    },
+
+    setManagerPin: async (_, { pin }, context) => {
+
+      if (!context.user) {
+        throw new Error("Autenticação necessária.");
+      }
+
+      const { MongoDB, user } = context;
+
+
+      const currentUser = await MongoDB(context).collection('users').findOne({ _id: user.userId });
+      if (currentUser.role !== 'ADMIN') {
+        throw new Error("Apenas administradores podem definir um PIN.");
+      }
+
+
+      if (!/^\d{4}$/.test(pin)) {
+        throw new Error("O PIN deve conter exatamente 4 dígitos numéricos.");
+      }
+
+
+      const hashedPin = await bcrypt.hash(pin, 10);
+
+
+      await MongoDB(context).collection('users').updateOne(
+        { _id: user.userId },
+        { $set: { managerPin: hashedPin } }
+      );
+
+      return true;
+    },
+
+    /**
+     * Verifica se o PIN fornecido corresponde a qualquer administrador da loja.
+     */
+    authorizeAction: async (_, { pin }, context) => {
+      if (!context.user) {
+        throw new Error("Ação não permitida. Nenhum usuário logado na sessão.");
+      }
+
+      const { MongoDB, user } = context;
+
+
+      const adminsInStore = await MongoDB(context).collection('users').find({
+        storeId: user.storeId,
+        role: 'ADMIN'
+      }).toArray();
+
+      if (adminsInStore.length === 0) {
+        throw new Error("Nenhum administrador encontrado para esta loja.");
+      }
+
+
+      for (const admin of adminsInStore) {
+        if (admin.managerPin) {
+
+          const isValid = await bcrypt.compare(pin, admin.managerPin);
+          if (isValid) {
+            return true;
+          }
+        }
+      }
+
+
+      throw new Error("PIN de administrador inválido.");
     },
   },
 };

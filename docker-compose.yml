@@ -1,0 +1,16 @@
+version: '3.8' # Usar uma versão mais recente como 3.8 é uma boa prática
+services:
+  mongo:
+    image: 'mongo:5.0'
+    container_name: 'stock-mongo'
+    restart: 'unless-stopped' # 'unless-stopped' é mais robusto que 'no'
+    volumes:
+      - mongodata:/data/db
+    ports:
+      - 27017:27017
+    # MUDANÇA: Adicionamos este comando para iniciar o MongoDB com o Replica Set
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+
+volumes:
+  mongodata:
+    driver: local
