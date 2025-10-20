@@ -1205,7 +1205,7 @@ __metadata:
     graphql: "npm:^16.8.1"
     graphql-tools: "npm:^9.0.0"
     jsonwebtoken: "npm:^9.0.2"
-    mongodb: "npm:^6.3.0"
+    mongodb: "npm:^6.20.0"
     name: "npm:^0.0.2"
     nodemon: "npm:^3.0.2"
     path: "npm:^0.12.7"
@@ -3238,7 +3238,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mongodb@npm:^6.3.0":
+"mongodb@npm:^6.20.0":
   version: 6.20.0
   resolution: "mongodb@npm:6.20.0"
   dependencies:
