@@ -471,7 +471,7 @@ function getHexColors(colorString) {
 }
 
 async function transformProducts() {
-  const client = await MongoClient.connect("mongodb://localhost:27017");
+  const client = await MongoClient.connect("mongodb+srv://stockshoes:57IQdr2jRXYwYv5Q@stock.6zd9q1k.mongodb.net/?retryWrites=true&w=majority");
   const db = client.db("apistock");
   const oldCollection = db.collection("products");
   const newCollection = db.collection("products_new");

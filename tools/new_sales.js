@@ -1,6 +1,6 @@
 const { MongoClient } = require("mongodb");
 
-const MONGO_URI = "mongodb://localhost:27017"; 
+const MONGO_URI = "mongodb+srv://stockshoes:57IQdr2jRXYwYv5Q@stock.6zd9q1k.mongodb.net/?retryWrites=true&w=majority"; 
 const DATABASE_NAME = "apistock";    
 const SOURCE_COLLECTION = "salesReport"; 
 const DESTINATION_COLLECTION = "sales";
