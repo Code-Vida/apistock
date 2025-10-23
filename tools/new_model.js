@@ -484,6 +484,7 @@ async function transformProducts() {
     const brand = p.brand?.trim() || "sem_marca";
     const model = p.model?.trim() || "sem_modelo";
     const slug = `${brand}_${model}`.toLowerCase().replace(/\s+/g, "_");
+    const storeId = 'bfa87926-d4c4-45b4-b43a-64adeec7d975'
 
     if (!grouped[slug]) {
       grouped[slug] = {
@@ -491,11 +492,13 @@ async function transformProducts() {
         slug,
         brand,
         model,
+        storeId,
         value: p.value ?? null,
         purchaseValue: p.purchaseValue ?? null,
         createdAt: p.createdAt || new Date(),
         updatedAt: p.updatedAt || new Date(),
         variants: [],
+
       };
     }
 

@@ -109,3 +109,23 @@ input CreateReturnInput {
   refundMethod: String! 
   reason: String 
 }
+
+input CreateStoreCreditInput {
+  customerId: ID!
+  reason: String
+  code: String
+  initialValue: Float
+  balance: Float,
+}
+
+type StoreCredit {
+  _id: ID!
+  customerId: ID!
+  reason: String
+  code: String
+  initialValue: Float
+  balance: Float,
+  createdAt: Date
+  updatedAt: Date
+  isActive: Boolean
+}
