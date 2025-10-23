@@ -8,6 +8,8 @@ type Query {
   getProduct(input: ProductInput, pagination: PaginationInput): ProductResponse @auth
   searchProducts(input: ProductSearchInput): [Product] @auth
   getAllProducts: [Product] @auth
+  storeCreditsByDate(date: String): [StoreCredit] @auth
+  storeCreditByCode(code: String!): StoreCredit @auth
   #audiences(pagination: PaginationInput): AudiencesResponse @auth(requires: [USER])
 
   #report
@@ -73,6 +75,8 @@ type Mutation {
   #devolution
   devolution(input: ID): Boolean @auth
   createReturn(input: CreateReturnInput!): Boolean @auth
+  createStoreCredit(input: CreateStoreCreditInput!): StoreCredit @auth
+  updateStoreCredit(code: String!, balance: Float!, isActive: Boolean!): StoreCredit @auth
 
   #sales
   createSale(input: CreateSaleInput!): Sale  @auth

@@ -20,6 +20,8 @@ class MongoService {
       await this.client.connect();
       this.db = this.client.db(DB_NAME);
       console.log("✅ Conectado ao MongoDB com sucesso.");
+      console.log(`🌐 Banco de dados: ${DB_NAME}`);
+      console.log(`🚀 URI: ${MONGO_URI}`);
     } catch (error) {
       console.error("❌ Falha ao conectar com o MongoDB:", error);
       process.exit(1);
