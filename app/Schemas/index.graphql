@@ -18,7 +18,7 @@ type Query {
   topSellingProducts(startDate: String! endDate: String! sortBy: String limit: Int): [TopSellingProduct] @auth
   getProfitabilityReport(startDate: String!, endDate: String!): ProfitabilityReport @auth
   getDailyCashClosingReport(date: String!): [PaymentMethodSummary] @auth
-  getInventoryReport: InventoryReport @auth
+  getInventoryReport(search: String): InventoryReport @auth
   getSalesPerformanceReport(userId: ID, month: Int, year: Int): SalesPerformanceReport @auth
   
   #dashboard
@@ -54,8 +54,7 @@ type Query {
   #store
   getStore: Store
 
-  
-
+  getInventorySummary: InventorySummary @auth
 }
 
 type Mutation {

@@ -1,4 +1,3 @@
-
 type ProfitabilitySummary {
     totalRevenue: Float! 
 totalCost: Float!    
@@ -83,7 +82,8 @@ type InventoryProductItem {
   model: String
   totalQuantity: Int!       
   totalCostValue: Float!    
-  totalSaleValue: Float!    
+  totalSaleValue: Float!
+  variants: [ProductVariant]   
 }
 
 
