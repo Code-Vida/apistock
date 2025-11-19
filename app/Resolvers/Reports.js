@@ -1,4 +1,3 @@
-
 const { startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } = require('date-fns'); 
 
 module.exports = {
@@ -255,25 +254,51 @@ module.exports = {
             }
         },
 
-        getInventoryReport: async (_, __, context) => {
+        getInventoryReport: async (_, { search }, context) => {
             try {
                 const pipeline = [
+                    ...(search ? [{ $match: { $or: [{ brand: { $regex: search, $options: 'i' } }, { model: { $regex: search, $options: 'i' } }] } }] : []),
                     
                     { $unwind: "$variants" },
                     { $unwind: "$variants.items" },
-
                     
                     {
                         $group: {
-                            _id: "$_id",
-                            brand: { $first: "$brand" },
-                            model: { $first: "$model" },
+                            _id: { productId: "$_id", colorSlug: "$variants.colorSlug" },
+                            productBrand: { $first: "$brand" },
+                            productModel: { $first: "$model" },
+                            productPurchaseValue: { $first: "$purchaseValue" },
+                            productValue: { $first: "$value" },
+                            colorLabel: { $first: "$variants.colorLabel" },
+                            items: {
+                                $push: {
+                                    number: "$variants.items.number",
+                                    amount: "$variants.items.amount"
+                                }
+                            },
                             totalQuantity: { $sum: "$variants.items.amount" },
                             totalCostValue: { $sum: { $multiply: ["$purchaseValue", "$variants.items.amount"] } },
                             totalSaleValue: { $sum: { $multiply: ["$value", "$variants.items.amount"] } },
                         }
                     },
-
+                    
+                    {
+                        $group: {
+                            _id: "$_id.productId",
+                            brand: { $first: "$productBrand" },
+                            model: { $first: "$productModel" },
+                            totalQuantity: { $sum: "$totalQuantity" },
+                            totalCostValue: { $sum: "$totalCostValue" },
+                            totalSaleValue: { $sum: "$totalSaleValue" },
+                            variants: {
+                                $push: {
+                                    colorSlug: "$_id.colorSlug",
+                                    colorLabel: "$colorLabel",
+                                    items: "$items"
+                                }
+                            }
+                        }
+                    },
                     
                     {
                         $group: {
@@ -290,11 +315,11 @@ module.exports = {
                                     totalQuantity: "$totalQuantity",
                                     totalCostValue: "$totalCostValue",
                                     totalSaleValue: "$totalSaleValue",
+                                    variants: "$variants"
                                 }
                             }
                         }
                     },
-
                     
                     {
                         $project: {
@@ -308,9 +333,7 @@ module.exports = {
                         }
                     }
                 ];
-
                 const result = await context.MongoDB(context).collection('products_new').aggregate(pipeline).toArray();
-
                 
                 if (result.length === 0) {
                     return {
@@ -318,9 +341,7 @@ module.exports = {
                         products: []
                     };
                 }
-
                 return result[0];
-
             } catch (error) {
                 console.error("Erro ao gerar relatório de inventário:", error);
                 throw new Error("Não foi possível gerar o relatório de inventário.");
@@ -387,6 +408,52 @@ module.exports = {
                 userGoal,
                 userGoalProgress,
             };
+        },
+
+        getInventorySummary: async (_, { search }, context) => {
+            try {
+                const pipeline = [
+                    ...(search ? [{ $match: { $or: [{ brand: { $regex: search, $options: 'i' } }, { model: { $regex: search, $options: 'i' } }] } }] : []),
+                    
+                    { $unwind: "$variants" },
+                    { $unwind: "$variants.items" },
+                    
+                    {
+                        $group: {
+                            _id: null,
+                            totalQuantity: { $sum: "$variants.items.amount" },
+                            totalCostValue: { $sum: { $multiply: ["$purchaseValue", "$variants.items.amount"] } },
+                            totalSaleValue: { $sum: { $multiply: ["$value", "$variants.items.amount"] } },
+                        }
+                    },
+                    
+                    {
+                        $project: {
+                            _id: 0,
+                            totalItemCount: "$totalQuantity",
+                            totalCostValue: 1,
+                            totalSaleValue: 1
+                        }
+                    }
+                ];
+                const result = await context.MongoDB(context).collection('products_new').aggregate(pipeline).toArray();
+                
+                if (result.length === 0) {
+                    return {
+                        totalItemCount: 0,
+                        totalCostValue: 0,
+                        totalSaleValue: 0
+                    };
+                }
+                return {
+                    totalItemCount: result[0].totalItemCount,
+                    totalCostValue: result[0].totalCostValue,
+                    totalSaleValue: result[0].totalSaleValue
+                };
+            } catch (error) {
+                console.error("Erro ao gerar resumo do inventário:", error);
+                throw new Error("Não foi possível gerar o resumo do inventário.");
+            }
         },
     }
 }
