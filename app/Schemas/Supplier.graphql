@@ -9,6 +9,7 @@ type Supplier {
 
 
 input SupplierInput {
+  _id: ID
   name: String!
   contactName: String
   phone: String

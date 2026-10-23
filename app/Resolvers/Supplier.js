@@ -1,11 +1,12 @@
 const uuid = require("uuid");
+const { escapeRegex } = require("../Helpers");
 
 module.exports = {
     Query: {
         getSuppliers: async (_, { searchText }, context) => {
             const filter = {};
             if (searchText) {
-                const searchRegex = new RegExp(searchText, 'i');
+                const searchRegex = new RegExp(escapeRegex(searchText), 'i');
                 filter.name = searchRegex;
             }
             return await context.MongoDB(context).collection('suppliers').find(filter).sort({ name: 1 }).toArray();
@@ -102,20 +103,31 @@ module.exports = {
         },
     },
     Mutation: {
+        // Upsert por _id: o sync offline do app reenvia o mesmo fornecedor ao criar e ao editar.
         createSupplier: async (_, { input }, context) => {
-            const newSupplier = {
-                _id: uuid.v4(),
-                ...input,
-                createdAt: new Date(),
-            };
-            await context.MongoDB(context).collection('suppliers').insertOne(newSupplier);
-            return newSupplier;
+            const { _id, ...fields } = input;
+            const suppliers = context.MongoDB(context).collection('suppliers');
+
+            if (!_id) {
+                const newSupplier = { _id: uuid.v4(), ...fields, createdAt: new Date() };
+                await suppliers.insertOne(newSupplier);
+                return newSupplier;
+            }
+
+            await suppliers.updateOne(
+                { _id },
+                { $set: { ...fields, updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
+                { upsert: true }
+            );
+            return suppliers.findOne({ _id });
         },
 
         updateSupplier: async (_, { id, input }, context) => {
+            // eslint-disable-next-line no-unused-vars
+            const { _id, ...fields } = input;
             const result = await context.MongoDB(context).collection('suppliers').findOneAndUpdate(
                 { _id: id },
-                { $set: input },
+                { $set: fields },
                 { returnDocument: 'after' }
             );
             return result;
