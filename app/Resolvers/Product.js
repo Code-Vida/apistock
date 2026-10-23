@@ -5,6 +5,7 @@ const {
   getPaginationInfo,
   getPaginationResult,
   trimObjectValues,
+  escapeRegex,
 } = require("../Helpers");
 
 const { startOfDay, endOfDay, parseISO } = require('date-fns');
@@ -47,7 +48,7 @@ module.exports = {
         filter['variants.items.barCode'] = input.barCode;
       } else if (input && input.text) {
 
-        const searchRegex = new RegExp(input.text, 'i');
+        const searchRegex = new RegExp(escapeRegex(input.text), 'i');
         filter.$or = [
           { brand: searchRegex },
           { model: searchRegex }
@@ -125,7 +126,7 @@ module.exports = {
           },
         ])
         .toArray();
-      return totalSalesSum[0].totalValue;
+      return totalSalesSum[0]?.totalValue ?? 0;
     },
 
     async totalSum(_, __, context) {
@@ -140,7 +141,7 @@ module.exports = {
           },
         ])
         .toArray();
-      return totalSum[0].totalSum;
+      return totalSum[0]?.totalSum ?? 0;
     },
   },
 
@@ -181,24 +182,20 @@ module.exports = {
     },
 
     async updateProduct(_, args, context) {
-      const { input } = args
-      const result = await context.MongoDB(context).collection("products_new").replaceOne(
-        { _id: input.id },
-        input,
-        { returnDocument: "after" }
+      // $set em vez de replaceOne: preserva createdAt e não grava o campo "id".
+      const { id, ...fields } = args.input;
+      const result = await context.MongoDB(context).collection("products_new").updateOne(
+        { _id: id },
+        { $set: { ...fields, updatedAt: new Date() } }
       );
-      console.log(result);
-      return result.modifiedCount ? true : false
+      return result.matchedCount > 0;
     },
 
     async acknowledgeLowStock(_, { productId }, context) {
       const updatedProduct = await context.MongoDB(context).collection('products_new').findByIdAndUpdate(
-        { _id: productId },
-        {
-
-          $set: { lowStockAcknowledgedAt: new Date() }
-        },
-        { new: true }
+        productId,
+        { $set: { lowStockAcknowledgedAt: new Date() } },
+        { returnDocument: 'after' }
       );
       return updatedProduct;
     },
@@ -315,12 +312,9 @@ module.exports = {
     },
 
     createStoreCredit: async (_, { input }, context) => {
-
-      const { client } = context;
-      const session = client.startSession();
-
-      await context.MongoDB(context).collection('return_credits').insertOne({ ...input, _id: uuid.v4(), createdAt: new Date() }, { session });
-      return
+      const credit = { ...input, _id: uuid.v4(), createdAt: new Date() };
+      await context.MongoDB(context).collection('return_credits').insertOne(credit);
+      return credit;
     },
 
     updateStoreCredit: async (_, { code, balance, isActive }, context) => {
@@ -330,7 +324,8 @@ module.exports = {
         { $set: { balance, isActive } },
         { returnDocument: 'after' }
       );
-      return updatedCredit.value;
+      // Driver 6: findOneAndUpdate já retorna o documento (sem .value).
+      return updatedCredit;
     },
   },
 };
