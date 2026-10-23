@@ -64,10 +64,31 @@ class FiscalService {
      * @param {string} saleId - O ID da venda (que foi usado como 'ref').
      * @param {object} context - O contexto do GraphQL para acesso ao DB.
      */
+    /**
+     * O polling usa setTimeout em memória e se perde quando a API reinicia.
+     * Chamado na subida do servidor para retomar as consultas pendentes.
+     * @param {object} db - Instância do banco (sem filtro de loja).
+     * @param {Function} MongoDB - Wrapper que aplica o filtro de storeId.
+     */
+    static async retomarConsultasPendentes(db, MongoDB) {
+        const pendentes = await db.collection('sales')
+            .find({ nfceStatus: 'processando' }, { projection: { _id: 1, storeId: 1 } })
+            .toArray();
+
+        for (const sale of pendentes) {
+            const context = { MongoDB, user: { storeId: sale.storeId } };
+            this.consultarStatusNFCe(sale._id, context)
+                .catch(err => console.error(`[FiscalService] Erro ao retomar consulta da venda ${sale._id}:`, err.message));
+        }
+        if (pendentes.length > 0) {
+            console.log(`[FiscalService] Retomando consulta de ${pendentes.length} NFC-e pendente(s).`);
+        }
+    }
+
     static async consultarStatusNFCe(saleId, context) {
         const { MongoDB } = context;
         try {
-            const url = `${FOCUS_NFE_BASE_URL}/v2/nfe/${saleId}`;
+            const url = `${FOCUS_NFE_BASE_URL}/v2/nfce/${saleId}`;
             const response = await axios.get(url, {
                 auth: { username: API_TOKEN }
             });
