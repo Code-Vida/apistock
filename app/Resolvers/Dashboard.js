@@ -39,8 +39,10 @@ module.exports = {
         
         lowStockProducts: async (_, { limit = 5, threshold = 10 }, context) => {
             
-            const lowStockPipeline = [                
-                { $unwind: "$variants" },                
+            const lowStockPipeline = [
+                // Precisa vir antes do $group, que descarta lowStockAcknowledgedAt.
+                { $match: { lowStockAcknowledgedAt: null } },
+                { $unwind: "$variants" },              
                 { $unwind: "$variants.items" },                
                 {
                     $group: {
@@ -52,8 +54,7 @@ module.exports = {
                 },                
                 {
                     $match: {
-                        totalStock: { $lte: threshold },
-                        lowStockAcknowledgedAt: { $eq: null }
+                        totalStock: { $lte: threshold }
                     }
                 },                
                 { $sort: { totalStock: 1 } },                
