@@ -25,6 +25,20 @@ class MongoService {
       console.error("❌ Falha ao conectar com o MongoDB:", error);
       process.exit(1);
     }
+    await this.ensureIndexes();
+  }
+
+  async ensureIndexes() {
+    try {
+      // No máximo uma sessão de caixa aberta por loja.
+      await this.db.collection("cash").createIndex(
+        { storeId: 1 },
+        { unique: true, partialFilterExpression: { status: "OPEN" }, name: "one_open_cash_per_store" }
+      );
+    } catch (error) {
+      // Não derruba a API: pode falhar se já houver dados duplicados no banco.
+      console.error("⚠️ Falha ao criar índices:", error.message);
+    }
   }
 
   getDb() {

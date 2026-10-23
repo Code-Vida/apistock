@@ -1,6 +1,17 @@
 "use strict";
 const { v4: uuidv4 } = require('uuid');
 
+// Vendas da sessão: as novas têm cashSessionId; as antigas (sem o campo)
+// continuam sendo atribuídas pela janela de tempo da sessão.
+function salesInSessionFilter(cashSession, endDate) {
+    return {
+        $or: [
+            { cashSessionId: cashSession._id },
+            { cashSessionId: { $exists: false }, createdAt: { $gte: cashSession.openedAt, $lte: endDate } },
+        ],
+    };
+}
+
 module.exports = {
     Query: {
         getActiveCashSession: async (_, __, context) => {
@@ -27,7 +38,7 @@ module.exports = {
 
                 
                 const salesSummaryPipeline = [
-                    { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+                    { $match: salesInSessionFilter(activeSession, endDate) },
                     { $group: { _id: "$paymentMethod", total: { $sum: "$finalAmount" }, salesCount: { $sum: 1 } } },
                     { $project: { _id: 0, paymentMethod: "$_id", totalAmount: "$total", salesCount: 1 } }
                 ];
@@ -93,6 +104,9 @@ module.exports = {
 
             } catch (error) {
                 console.error("Erro ao abrir o caixa:", error);
+                if (error.code === 11000) {
+                    throw new Error("Já existe uma sessão de caixa aberta. Feche a sessão atual antes de abrir uma nova.");
+                }
                 throw new Error(error.message || "Não foi possível abrir o caixa.");
             }
         },
@@ -157,7 +171,7 @@ module.exports = {
 
                     
                     const salesSummaryPipeline = [
-                        { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+                        { $match: salesInSessionFilter(activeSession, endDate) },
                         { $group: { _id: "$paymentMethod", total: { $sum: "$finalAmount" } } },
                         { $project: { _id: 0, paymentMethod: "$_id", total: 1 } }
                     ];
