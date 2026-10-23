@@ -1,6 +1,7 @@
 const { MongoClient } = require("mongodb");
+require("dotenv").config();
 
-const MONGO_URI = "mongodb+srv://stockshoes:***REMOVED***@stock.6zd9q1k.mongodb.net/?retryWrites=true&w=majority"; 
+const MONGO_URI = process.env.MONGO_URI; 
 const DATABASE_NAME = "apistock";    
 const SOURCE_COLLECTION = "salesReport"; 
 const DESTINATION_COLLECTION = "sales";

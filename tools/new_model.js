@@ -1,4 +1,5 @@
 const { MongoClient } = require("mongodb");
+require("dotenv").config();
 const { v4: uuidv4 } = require("uuid");
 
 function getHexColors(colorString) {
@@ -471,7 +472,7 @@ function getHexColors(colorString) {
 }
 
 async function transformProducts() {
-  const client = await MongoClient.connect("mongodb+srv://stockshoes:***REMOVED***@stock.6zd9q1k.mongodb.net/?retryWrites=true&w=majority");
+  const client = await MongoClient.connect(process.env.MONGO_URI);
   const db = client.db("apistock");
   const oldCollection = db.collection("products");
   const newCollection = db.collection("products_new");
