@@ -2,6 +2,33 @@
 const uuid = require("uuid");
 const bcrypt = require('bcryptjs');
 
+const VALID_ROLES = ['ADMIN', 'VENDEDOR'];
+
+// Limite de tentativas erradas de PIN por loja (o PIN tem só 4 dígitos).
+// Em memória: zera ao reiniciar a API, o que é aceitável para este caso.
+const PIN_MAX_FAILURES = 5;
+const PIN_LOCK_MS = 15 * 60 * 1000;
+const pinFailures = new Map();
+
+function assertPinNotLocked(storeId) {
+  const entry = pinFailures.get(storeId);
+  if (entry && entry.lockedUntil > Date.now()) {
+    const minutes = Math.ceil((entry.lockedUntil - Date.now()) / 60000);
+    throw new Error(`Muitas tentativas de PIN incorretas. Tente novamente em ${minutes} minuto(s).`);
+  }
+}
+
+function registerPinFailure(storeId) {
+  const entry = pinFailures.get(storeId);
+  // Bloqueio anterior já expirado: recomeça a contagem.
+  const lockExpired = entry?.lockedUntil && entry.lockedUntil <= Date.now();
+  const failures = (lockExpired ? 0 : entry?.failures || 0) + 1;
+  pinFailures.set(storeId, {
+    failures,
+    lockedUntil: failures >= PIN_MAX_FAILURES ? Date.now() + PIN_LOCK_MS : 0,
+  });
+}
+
 module.exports = {
   Query: {
     async getAll(_, __, context) {
@@ -30,6 +57,9 @@ module.exports = {
       }
 
       const { name, email, password, role } = input;
+      if (!VALID_ROLES.includes(role)) {
+        throw new Error(`Perfil inválido. Use um destes: ${VALID_ROLES.join(', ')}.`);
+      }
       if (password.length < 6) throw new Error('A senha precisa ter no mínimo 6 caracteres.');
 
       const existingUser = await MongoDB(context).collection('users').findOne({ email });
@@ -116,6 +146,7 @@ module.exports = {
       }
 
       const { MongoDB, user } = context;
+      assertPinNotLocked(user.storeId);
 
 
       const adminsInStore = await MongoDB(context).collection('users').find({
@@ -133,12 +164,14 @@ module.exports = {
 
           const isValid = await bcrypt.compare(pin, admin.managerPin);
           if (isValid) {
+            pinFailures.delete(user.storeId);
             return true;
           }
         }
       }
 
 
+      registerPinFailure(user.storeId);
       throw new Error("PIN de administrador inválido.");
     },
   },

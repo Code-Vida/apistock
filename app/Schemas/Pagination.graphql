@@ -1,5 +1,5 @@
 type Pagination {
-  total: String!
+  total: Int!
   lastPage: Int!
   perPage: Int!
   page: Int!

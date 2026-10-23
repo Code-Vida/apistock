@@ -38,7 +38,7 @@ type Query {
   getCustomerDetails(id: ID!): CustomerDetails @auth
   getCustomerMarketingReport(input: CustomerMarketingInput!): [Customer] @auth
   getCustomerLoyaltyHistory(customerId: ID!): [LoyaltyTransaction] @auth
-  getAllCustomers: [Customer]
+  getAllCustomers: [Customer] @auth
 
 
   #suppliers
@@ -49,17 +49,15 @@ type Query {
 
   #user
   me: User
-  getUsersByStore: [User]
+  getUsersByStore: [User] @auth
 
   #store
-  getStore: Store
+  getStore: Store @auth
 
   getInventorySummary: InventorySummary @auth
 }
 
 type Mutation {
-  hello: String
-
   #user
   # login(input: LoginInput!): UserResponse
   #createUser(input: UserInput!): UserResponse  @auth
@@ -79,7 +77,6 @@ type Mutation {
 
   #sales
   createSale(input: CreateSaleInput!): Sale  @auth
-  redeemLoyaltyPoints(customerId: ID!, pointsToRedeem: Int!): Sale @auth
 
   #cash
   openCashSession(openingBalance: Float!): CashSession! @auth
@@ -101,14 +98,14 @@ type Mutation {
   #login
   signUp(storeName: String!, name: String!, email: String!, password: String!): AuthPayload!
   login(email: String!, password: String!): AuthPayload!
-  setManagerPin(pin: String!): Boolean
-  authorizeAction(pin: String!): Boolean
-  createUser(input: CreateUserInput!): User
-  resetUserPassword(userId: ID!, newPassword: String!): Boolean
+  setManagerPin(pin: String!): Boolean @auth
+  authorizeAction(pin: String!): Boolean @auth
+  createUser(input: CreateUserInput!): User @auth
+  resetUserPassword(userId: ID!, newPassword: String!): Boolean @auth
 
   #commission and goals
-  setUserCommissionRate(userId: ID!, rate: Float!): User  
-  setMonthlySalesGoal(goal: Float!): Store
-  setUserSalesGoal(userId: ID!, goal: Float!): User
+  setUserCommissionRate(userId: ID!, rate: Float!): User @auth
+  setMonthlySalesGoal(goal: Float!): Store @auth
+  setUserSalesGoal(userId: ID!, goal: Float!): User @auth
 
 }
