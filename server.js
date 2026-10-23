@@ -16,7 +16,10 @@ const { mongoInstance, MongoDB } = require("./app/database");
 
 
 
-const JWT_SECRET = process.env.JWT_SECRET || 'seu-segredo-super-secreto';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET não definido. Configure a variável de ambiente.");
+}
 
 
 const getUserFromToken = (token) => {
