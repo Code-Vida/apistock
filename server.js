@@ -13,6 +13,7 @@ const { GraphQLError, defaultFieldResolver } = require('graphql');
 
 
 const { mongoInstance, MongoDB } = require("./app/database");
+const FiscalService = require("./app/services/FiscalService");
 
 
 
@@ -62,10 +63,47 @@ function authDirectiveTransformer(schema, directiveName) {
 }
 
 
+// Limite simples por IP, em memória. Freia força bruta (login, PIN) e abuso.
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX) || 300;
+const requestCounts = new Map();
+
+function rateLimit(req, res, next) {
+  const now = Date.now();
+  const entry = requestCounts.get(req.ip);
+  if (!entry || entry.resetAt <= now) {
+    requestCounts.set(req.ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return next();
+  }
+  entry.count += 1;
+  if (entry.count > RATE_LIMIT_MAX) {
+    return res.status(429).json({ errors: [{ message: "Muitas requisições. Tente novamente em instantes." }] });
+  }
+  return next();
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of requestCounts) {
+    if (entry.resetAt <= now) requestCounts.delete(ip);
+  }
+}, RATE_LIMIT_WINDOW_MS).unref();
+
+// CORS_ORIGINS: lista separada por vírgula (ex.: https://app.fluxy.com.br).
+// Sem a variável, mantém o comportamento anterior (qualquer origem).
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
+  : true;
+
 async function startApolloServer() {
   await mongoInstance.connect();
+  FiscalService.retomarConsultasPendentes(mongoInstance.getDb(), MongoDB)
+    .catch((err) => console.error("[FiscalService] Falha ao retomar consultas:", err.message));
 
   const app = express();
+  // Railway fica atrás de proxy: necessário para req.ip ser o IP real do cliente.
+  app.set("trust proxy", 1);
+  app.use(rateLimit);
 
 
 
@@ -99,7 +137,7 @@ async function startApolloServer() {
 
   await server.start();
 
-  server.applyMiddleware({ app });
+  server.applyMiddleware({ app, cors: { origin: corsOrigins } });
 
   app.listen({ port: process.env.PORT || 4000 }, () =>
     console.log(
