@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 module.exports = {
   Query: {
     async getAll(_, __, context) {
-      return await context.MongoDB(context).collection("users").find({}).toArray();
+      return await context.MongoDB(context).collection("users").find({ storeId: context.user.storeId }).toArray();
     },
 
     getUsersByStore: async (_, __, context) => {
