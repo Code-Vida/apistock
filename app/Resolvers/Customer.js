@@ -116,14 +116,38 @@ module.exports = {
     },
 
     Mutation: {
+        // Upsert por _id: o app (offline-first) gera o _id e reenvia o mesmo
+        // cliente tanto ao criar quanto ao editar ou ressincronizar.
         createCustomer: async (_, { input }, context) => {
-            const newCustomer = {
-                _id: uuidv4(),
-                ...input,
-                createdAt: new Date(),
-            };
-            await context.MongoDB(context).collection('customers').insertOne(newCustomer);
-            return newCustomer;
+            const { _id, ...fields } = input;
+            const customers = context.MongoDB(context).collection('customers');
+
+            if (!_id) {
+                const newCustomer = { _id: uuidv4(), ...fields, createdAt: new Date() };
+                await customers.insertOne(newCustomer);
+                return newCustomer;
+            }
+
+            await customers.updateOne(
+                { _id },
+                { $set: { ...fields, updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
+                { upsert: true }
+            );
+            return customers.findOne({ _id });
+        },
+
+        updateCustomer: async (_, { id, input }, context) => {
+            // eslint-disable-next-line no-unused-vars
+            const { _id, ...fields } = input;
+            const updated = await context.MongoDB(context).collection('customers').findOneAndUpdate(
+                { _id: id },
+                { $set: { ...fields, updatedAt: new Date() } },
+                { returnDocument: 'after' }
+            );
+            if (!updated) {
+                throw new Error("Cliente não encontrado.");
+            }
+            return updated;
         },
 
     }
