@@ -1,11 +1,24 @@
 "use strict";
 const { v4: uuidv4 } = require('uuid');
 const { subDays } = require('date-fns');
+const { escapeRegex } = require('../Helpers');
 
 module.exports = {
     Query: {
+        getCustomerById: async (_, { id }, context) => {
+            return context.MongoDB(context).collection('customers').findOne({ _id: id });
+        },
+
+        getCustomerLoyaltyHistory: async (_, { customerId }, context) => {
+            const transactions = await context.MongoDB(context).collection('loyalty_transactions')
+                .find({ customerId })
+                .sort({ createdAt: -1 })
+                .toArray();
+            return transactions.map(t => ({ ...t, id: t._id }));
+        },
+
         searchCustomers: async (_, { searchText }, context) => {
-            const searchRegex = new RegExp(searchText, 'i');
+            const searchRegex = new RegExp(escapeRegex(searchText), 'i');
             const customers = await context.MongoDB(context).collection('customers').find({
                 $or: [
                     { name: searchRegex },
